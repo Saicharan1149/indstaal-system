@@ -891,9 +891,10 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Full Name</label><input class="form-input" id="em-name"></div>
       <div class="form-group"><label class="form-label">Role</label>
-        <select class="form-select" id="em-role"><option value="Full Access">GM / Manager</option><option value="Team Lead">Team Lead</option><option value="Design Engineer">Design Engineer</option></select>
+        <select class="form-select" id="em-role" onchange="toggleEmTLField()"><option value="Full Access">GM / Manager</option><option value="Team Lead">Team Lead</option><option value="Design Engineer">Design Engineer</option></select>
       </div>
       <div class="form-group"><label class="form-label">Initials</label><input class="form-input" id="em-initials" maxlength="3" style="text-transform:uppercase;"></div>
+      <div class="form-group full" id="em-tl-row"><label class="form-label">Assign to Team Lead</label><select class="form-select" id="em-tl-assign"><option value="">-- No TL --</option></select></div>
       <div class="form-group full"><label class="form-label">Avatar Colour — click to pick</label><div class="color-row" id="em-color-picker"></div><div style="margin-top:6px;display:flex;align-items:center;gap:8px;"><div id="em-color-preview-box" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;"></div><span style="font-size:11px;color:var(--text3);">Selected colour</span></div></div>
     </div>
   </div>
@@ -1250,8 +1251,22 @@ function openEditMember(memberName){
   document.getElementById('em-role').value=u.role;
   document.getElementById('em-initials').value=u.initials;
   editSelectedColor=u.color;
+  // Populate TL dropdown
+  const tls=users.filter(x=>x.role==='Team Lead');
+  const tlDrop=document.getElementById('em-tl-assign');
+  tlDrop.innerHTML='<option value="">-- No TL --</option>'+tls.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
+  tlDrop.value=u.assignedTL||'';
+  // Show/hide TL row based on role
+  const tlRow=document.getElementById('em-tl-row');
+  if(tlRow)tlRow.style.display=u.role==='Design Engineer'?'flex':'none';
   renderColorPicker('em-color-picker','em-color-preview-box','edit');
   openModal('m-editmember');
+}
+
+function toggleEmTLField(){
+  const role=document.getElementById('em-role').value;
+  const tlRow=document.getElementById('em-tl-row');
+  if(tlRow)tlRow.style.display=role==='Design Engineer'?'flex':'none';
 }
 
 function saveMemberEdit(){
@@ -1267,7 +1282,8 @@ function saveMemberEdit(){
   // Check duplicate name (only if name changed)
   if(name!==oldName&&users.find(u=>u.name===name)){alert('A member with this name already exists.');return;}
   const existing=users[idx];
-  users[idx]={name,role,color:editSelectedColor,initials,assignedTL:existing.assignedTL||''};
+  const newAssignedTL=document.getElementById('em-role').value==='Design Engineer'?(document.getElementById('em-tl-assign').value||''):(existing.assignedTL||'');
+  users[idx]={name,role,color:editSelectedColor,initials,assignedTL:newAssignedTL};
   saveUsers(users);
   if(currentUser.name===oldName){currentUser=users[idx];updateSidebarUser();}
   closeModal('m-editmember');
@@ -1853,6 +1869,7 @@ function showDetail(id){
     <button class="btn btn-ghost" onclick="closeModal('m-detail')">Close</button>
     <button class="btn btn-ghost" onclick="closeModal('m-detail');openModal('m-timelog')">⏱ Log Time</button>
     ${canAssign?`<button class="btn btn-success" onclick="openAssignEngineer('${q.id}')">👷 Assign Engineer</button>`:''}
+    <button class="btn btn-danger" onclick="deleteQ('${q.id}')" style="margin-left:auto;">🗑 Delete</button>
     <button class="btn btn-primary" onclick="openStatusUpdate('${q.id}')">Update Status</button>`;
   openModal('m-detail');
 }
@@ -1861,6 +1878,21 @@ function swTab(btn,id){
   par.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   par.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   btn.classList.add('active');document.getElementById(id).classList.add('active');
+}
+
+async function deleteQ(id){
+  const q=db.quotations.find(x=>x.id===id);
+  if(!q)return;
+  if(!confirm(`Delete "${q.qid} — ${q.name}"?\n\nThis will also remove all tasks and time logs linked to this quotation. This cannot be undone.`))return;
+  closeModal('m-detail');
+  // Remove from local db
+  db.quotations=db.quotations.filter(x=>x.id!==id);
+  db.tasks=db.tasks.filter(t=>t.qid!==id);
+  db.logs=db.logs.filter(l=>l.qid!==id);
+  // Sync deletion to Google Sheets
+  await apiCall('deleteQ',{id});
+  refreshAll();
+  showToast('🗑 Quotation deleted','#ef4444');
 }
 
 // ══════════════════════════════════════════════════════════════
