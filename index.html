@@ -802,6 +802,50 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
 </div><!-- end settings page -->
 
 </main>
+
+<!-- EDIT TIME LOG MODAL -->
+<div class="modal-overlay" id="m-edit-log" style="display:none;">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head"><h2>✏️ Edit Time Entry</h2><button class="modal-close" onclick="closeModal('m-edit-log')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Quotation</label>
+          <select class="form-select" id="el-quot"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" id="el-date" type="date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hours Spent</label>
+          <input class="form-input" id="el-hrs" type="number" step="0.5" min="0.5" max="24" placeholder="e.g. 2.5"/>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Work Type — click to select</label>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px;">
+            <label class="wtype-btn el-wtype" data-type="Study">📖<span>Study</span></label>
+            <label class="wtype-btn el-wtype" data-type="Estimation">📊<span>Estimation</span></label>
+            <label class="wtype-btn el-wtype" data-type="STAAD Design">📐<span>STAAD</span></label>
+            <label class="wtype-btn el-wtype" data-type="Checking">✔️<span>Checking</span></label>
+            <label class="wtype-btn el-wtype" data-type="Other Work">📌<span>Other</span></label>
+          </div>
+          <input type="hidden" id="el-type" value="">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Remarks</label>
+          <textarea class="form-textarea" id="el-desc" style="min-height:65px;" placeholder="What was done..."></textarea>
+        </div>
+      </div>
+      <input type="hidden" id="el-log-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('m-edit-log')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditLog()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- end shell -->
 
 <!-- ASSIGN ENGINEER MODAL -->
@@ -1269,6 +1313,14 @@ function normaliseStatus(s){
 
 function uid(){return 'id-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);}
 function today(){return new Date().toISOString().split('T')[0];}
+function fmtDate(d){
+  if(!d)return '—';
+  // Handle ISO timestamp strings like "2026-03-29T18:30:00.000Z"
+  if(typeof d==='string'&&d.includes('T'))return d.split('T')[0];
+  // Handle Date objects from Sheets
+  if(d instanceof Date)return d.toISOString().split('T')[0];
+  return String(d);
+}
 function daysBetween(a,b){if(!a)return 0;const d1=new Date(a),d2=b?new Date(b):new Date();return Math.max(0,Math.floor((d2-d1)/86400000));}
 function isDelayed(q){if(!q.deadline||normaliseStatus(q.status)==='Completed')return false;const today=new Date();today.setHours(0,0,0,0);const dl=new Date(q.deadline);dl.setHours(0,0,0,0);return today>dl;}
 function totalHrs(qid){return db.logs.filter(l=>l.qid===qid).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);}
@@ -1300,7 +1352,8 @@ async function fetchAll(){
     if(json.quotations!==undefined){
       db.quotations=json.quotations||[];
       db.tasks=json.tasks||[];
-      db.logs=json.logs||[];
+      // Normalise log dates coming from Google Sheets (may be ISO timestamps)
+      db.logs=(json.logs||[]).map(l=>({...l,date:fmtDate(l.date)}));
       db.activityLogs=json.activityLogs||[];
     }
     // Refresh users cache from sheet
@@ -2043,7 +2096,7 @@ function renderTimelog(){
     else if(currentUser.role==='Design Engineer') engineers=[currentUser];
 
     const cards=engineers.map(eng=>{
-      const engLogs=logSrc.filter(l=>l.eng===eng.name&&l.date===todayStr);
+      const engLogs=logSrc.filter(l=>l.eng===eng.name&&fmtDate(l.date)===todayStr);
       const engHrs=engLogs.reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
       return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);">
         <div style="padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
@@ -2130,7 +2183,7 @@ function renderTimelog(){
   if(thead)thead.innerHTML='<tr>'+cols.map(c=>`<th>${c.label}</th>`).join('')+'</tr>';
   document.getElementById('tl-tbody').innerHTML=logSrc.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>`<tr>
     ${cols.map(c=>{
-      if(c.key==='date') return `<td class="td-mono">${l.date}</td>`;
+      if(c.key==='date') return `<td class="td-mono">${fmtDate(l.date)}</td>`;
       if(c.key==='eng')  return `<td style="font-weight:600;">${l.eng}</td>`;
       if(c.key==='qid')  return `<td class="td-mono" style="color:var(--blue2);">${qmap[l.qid]?qmap[l.qid].qid:l.qid||'—'}</td>`;
       if(c.key==='type') return `<td><span style="color:${typeColors[l.type]||'var(--text)'};font-size:12px;font-weight:600;">${l.type||'—'}</span></td>`;
@@ -2138,8 +2191,8 @@ function renderTimelog(){
       if(c.key==='desc') return `<td style="font-size:12px;color:var(--text2);">${l.desc||'—'}</td>`;
       return `<td>${l[c.key]||'—'}</td>`;
     }).join('')}
-    <td onclick="event.stopPropagation()">
-      <button class="btn btn-ghost btn-xs" data-edit-log="${l.id}" title="Edit this entry">✏️</button>
+    <td>
+      <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openEditLog('${l.id}')" title="Edit this entry">✏️</button>
     </td>
   </tr>`).join('')||`<tr><td colspan="${(cols.length||6)+1}"><div class="empty"><p>No time entries yet</p></div></td></tr>`;
 }
@@ -2540,7 +2593,7 @@ async function saveLog(){
   if(!eng){alert('Could not determine engineer name. Please log out and back in.');return;}
   const l={
     id:uid(), qid, tid:'', eng,
-    date: document.getElementById('tl-date').value||today(),
+    date: fmtDate(document.getElementById('tl-date').value||today()),
     hrs, type: wtype,
     desc: document.getElementById('tl-desc').value||''
   };
@@ -3155,10 +3208,10 @@ async function saveEditQuotation(){
 // ══════════════════════════════════════════════════════════════
 function openEditLog(logId){
   const l=db.logs.find(x=>x.id===logId);
-  if(!l){alert('Entry not found.');return;}
+  if(!l){showToast('Entry not found','#c53030');return;}
   // Engineers can only edit their own entries
   if(currentUser.role==='Design Engineer'&&l.eng!==currentUser.name){
-    alert('You can only edit your own time entries.');return;
+    showToast('You can only edit your own entries','#c53030');return;
   }
   // Populate quotation dropdown
   const quotSel=document.getElementById('el-quot');
@@ -3166,16 +3219,18 @@ function openEditLog(logId){
     quotSel.innerHTML=db.quotations.map(q=>`<option value="${q.id}"${q.id===l.qid?' selected':''}>${q.qid} — ${q.name}</option>`).join('');
   }
   // Fill fields
-  document.getElementById('el-log-id').value = l.id;
-  document.getElementById('el-date').value    = l.date||'';
-  document.getElementById('el-hrs').value     = l.hrs||'';
-  document.getElementById('el-desc').value    = l.desc||'';
-  document.getElementById('el-type').value    = l.type||'';
-  // Set work type button selection
+  const li=document.getElementById('el-log-id'); if(li) li.value=l.id;
+  const ld=document.getElementById('el-date');   if(ld) ld.value=fmtDate(l.date)||'';
+  const lh=document.getElementById('el-hrs');    if(lh) lh.value=l.hrs||'';
+  const ldc=document.getElementById('el-desc');  if(ldc)ldc.value=l.desc||'';
+  const lt=document.getElementById('el-type');   if(lt) lt.value=l.type||'';
+  // Set work type button highlight
   document.querySelectorAll('.el-wtype').forEach(b=>{
     b.classList.toggle('selected', b.getAttribute('data-type')===l.type);
   });
-  openModal('m-edit-log');
+  // Show modal directly — bypass openModal() to avoid unrelated setup code errors
+  const overlay=document.getElementById('m-edit-log');
+  if(overlay){overlay.style.display='flex';overlay.classList.add('open');}
 }
 
 async function saveEditLog(){
@@ -3208,48 +3263,6 @@ async function saveEditLog(){
 
 </script>
 
-<!-- EDIT TIME LOG MODAL -->
-<div class="modal-overlay" id="m-edit-log">
-  <div class="modal" style="max-width:460px;">
-    <div class="modal-head"><h2>✏️ Edit Time Entry</h2><button class="modal-close" onclick="closeModal('m-edit-log')">✕</button></div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group full">
-          <label class="form-label">Quotation</label>
-          <select class="form-select" id="el-quot"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Date</label>
-          <input class="form-input" id="el-date" type="date"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hours Spent</label>
-          <input class="form-input" id="el-hrs" type="number" step="0.5" min="0.5" max="24" placeholder="e.g. 2.5"/>
-        </div>
-        <div class="form-group full">
-          <label class="form-label">Work Type — click to select</label>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px;">
-            <label class="wtype-btn el-wtype" data-type="Study">📖<span>Study</span></label>
-            <label class="wtype-btn el-wtype" data-type="Estimation">📊<span>Estimation</span></label>
-            <label class="wtype-btn el-wtype" data-type="STAAD Design">📐<span>STAAD</span></label>
-            <label class="wtype-btn el-wtype" data-type="Checking">✔️<span>Checking</span></label>
-            <label class="wtype-btn el-wtype" data-type="Other Work">📌<span>Other</span></label>
-          </div>
-          <input type="hidden" id="el-type" value="">
-        </div>
-        <div class="form-group full">
-          <label class="form-label">Remarks</label>
-          <textarea class="form-textarea" id="el-desc" style="min-height:65px;" placeholder="What was done..."></textarea>
-        </div>
-      </div>
-      <input type="hidden" id="el-log-id">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('m-edit-log')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveEditLog()">Save Changes</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
