@@ -1,0 +1,3096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indstaal — Live Team System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1a1a;--surface:#222222;--surface2:#2a2a2a;--surface3:#333333;
+  --border:#3a3a3a;--border2:#444444;
+  --navy:#111111;--blue:#f5c400;--blue2:#ffd700;--blue-light:#2a2500;
+  --green:#22c55e;--green-l:#052e16;--red:#ef4444;--red-l:#1f0808;
+  --yellow:#f5c400;--yellow-l:#2a2500;--orange:#fb923c;--orange-l:#1f1108;
+  --purple:#a78bfa;--purple-l:#1e1033;
+  --text:#f5f5f5;--text2:#d4d4d4;--text3:#888888;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --radius:8px;--radius2:14px;
+  --shadow:0 1px 3px rgba(0,0,0,0.4),0 1px 2px rgba(0,0,0,0.3);
+  --shadow2:0 4px 16px rgba(0,0,0,0.5);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* SETUP */
+#setup-screen{position:fixed;inset:0;background:linear-gradient(135deg,#111111,#1a1a00);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.setup-card{background:#1c1c1c;border:1px solid #f5c400;border-radius:20px;padding:36px;max-width:520px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.6);}
+.setup-logo{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;}
+.setup-card h1{font-size:20px;font-weight:700;color:var(--yellow);margin-bottom:5px;}
+.setup-card>p{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
+.setup-step{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.setup-step-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--yellow);color:#111;border-radius:50%;font-size:10px;font-weight:700;margin-bottom:7px;}
+.setup-step h3{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:5px;}
+.setup-step p{font-size:12px;color:var(--text2);margin:0 0 8px;}
+.setup-step code{background:#0f2942;color:#a8d8ff;border-radius:6px;display:block;padding:8px 11px;font-family:var(--mono);font-size:11px;word-break:break-all;margin-top:6px;}
+.setup-divider{text-align:center;color:var(--text3);font-size:12px;margin:12px 0;position:relative;}
+.setup-divider::before{content:'';position:absolute;left:0;top:50%;width:100%;height:1px;background:var(--border);}
+.setup-divider span{background:var(--surface);padding:0 10px;position:relative;}
+
+/* SYNC */
+#sync-bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--yellow);transform:scaleX(0);transform-origin:left;transition:transform 0.3s;z-index:300;}
+#sync-status{position:fixed;bottom:16px;right:16px;background:#111;border:1px solid var(--yellow);color:var(--yellow);font-size:11px;font-family:var(--mono);padding:6px 13px;border-radius:20px;z-index:300;display:flex;align-items:center;gap:6px;box-shadow:var(--shadow2);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.sync-dot.syncing{background:var(--yellow);animation:blink 0.6s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* SHELL */
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:230px;min-height:100vh;background:var(--navy);position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.logo-eyebrow{font-size:10px;font-family:var(--mono);color:rgba(255,255,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;}
+.logo-name{font-size:15px;font-weight:700;color:#fff;}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.3);margin-top:2px;font-family:var(--mono);}
+.user-pill{margin:12px 14px 0;background:rgba(255,255,255,0.06);border:1px solid var(--yellow);border-radius:var(--radius);padding:8px 12px;display:flex;align-items:center;gap:9px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.user-info .uname{font-size:12px;font-weight:600;color:#fff;}
+.user-info .urole{font-size:10px;color:rgba(255,255,255,0.4);}
+.nav{padding:12px 0;flex:1;overflow-y:auto;}
+.nav-label{padding:10px 16px 3px;font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.15em;text-transform:uppercase;font-family:var(--mono);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);border-left:2px solid transparent;margin:1px 0;}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.06);}
+.nav-item.active{color:var(--yellow);background:rgba(245,196,0,0.12);border-left-color:var(--yellow);}
+.nav-icon{font-size:15px;width:20px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;font-family:var(--mono);}
+.sidebar-footer{padding:12px 14px;border-top:1px solid rgba(255,255,255,0.08);}
+.conn-status{font-size:10px;font-family:var(--mono);color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.conn-dot.off{background:var(--red);}
+
+/* MAIN */
+.main{margin-left:230px;flex:1;display:flex;flex-direction:column;}
+.topbar{background:#1a1a1a;border-bottom:1px solid #f5c400;padding:0 24px;height:56px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;box-shadow:var(--shadow);}
+.topbar-title{font-size:15px;font-weight:700;flex:1;}
+.topbar-brand{color:var(--yellow);font-weight:800;} .topbar-sub{color:rgba(255,255,255,0.45);font-weight:400;font-size:13px;margin-left:4px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:13px;font-family:var(--font);font-weight:600;border:none;transition:all 0.15s;}
+.btn-primary{background:var(--yellow);color:#111;font-weight:700;}
+.btn-primary:hover{background:#ffd700;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid #555;}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-ghost-dark{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.2);border-radius:var(--radius);padding:7px 14px;font-size:12px;font-family:var(--font);font-weight:600;cursor:pointer;}
+.btn-ghost-dark:hover{background:rgba(255,255,255,0.12);color:#fff;}
+.filter-chip{padding:3px 11px;border-radius:12px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);display:inline-block;margin-right:4px;margin-bottom:4px;}
+.filter-chip.active{background:var(--accent,#f59e0b);color:#111;border-color:var(--accent,#f59e0b);font-weight:700;}
+.btn-success{background:var(--green);color:#fff;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{opacity:0.85;}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-xs{padding:3px 8px;font-size:11px;}
+
+/* USER SWITCHER */
+.user-switcher{display:flex;gap:5px;align-items:center;}
+.user-chip{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;border:2px solid transparent;transition:all 0.15s;background:var(--surface3);}
+.user-chip:hover{border-color:var(--border2);}
+.user-chip.active{border-color:var(--yellow);background:#2a2500;color:var(--yellow);}
+.uc-dot{width:7px;height:7px;border-radius:50%;}
+
+/* PAGES */
+.page{padding:24px;display:none;}
+.page.active{display:block;}
+.section-hdr{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.section-hdr h2{font-size:18px;font-weight:700;flex:1;color:var(--navy);}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.blue::after{background:var(--blue2);}
+.stat-card.green::after{background:var(--green);}
+.stat-card.red::after{background:var(--red);}
+.stat-card.yellow::after{background:var(--yellow);}
+.stat-card.purple::after{background:var(--purple);}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono);margin-bottom:5px;}
+.stat-value{font-size:26px;font-weight:700;line-height:1;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono);}
+
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;box-shadow:var(--shadow);margin-bottom:18px;}
+.table-header{padding:12px 18px;border-bottom:1px solid var(--border);border-left:4px solid var(--yellow);display:flex;align-items:center;gap:10px;background:var(--surface2);}
+.table-header h3{font-size:14px;font-weight:700;flex:1;color:var(--navy);}
+.search-input{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 11px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;width:175px;}
+.search-input:focus{border-color:var(--blue2);}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:9px 14px;text-align:left;font-size:10px;color:var(--yellow);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono);border-bottom:1px solid #444;background:#1e1e1e;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#2a2500;}
+td{padding:10px 14px;font-size:13px;color:var(--text);}
+.td-mono{font-family:var(--mono);font-size:11px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-family:var(--mono);font-weight:500;white-space:nowrap;}
+
+.s-InProgress{background:#fff4e6;color:#c05621;border:1px solid #fbd38d;}
+.s-SenttoSales{background:#f0fff4;color:#0d7a4a;border:1px solid #9ae6b4;}
+.s-UnderChecking{background:#ebf8ff;color:#2b6cb0;border:1px solid #90cdf4;}
+.s-Completed{background:#f0fff4;color:#0d7a4a;border:1px solid #68d391;}
+.s-OnHold{background:#fff5f5;color:#c53030;border:1px solid #feb2b2;}
+.s-AssignedtoTL{background:#f5f3ff;color:#6b46c1;border:1px solid #d6bcfa;}
+.s-Received{background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;}
+
+.s-Received{background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;}
+.s-AssignedtoTL{background:var(--purple-l);color:var(--purple);border:1px solid #d6bcfa;}
+.s-AssignedtoEngineer{background:#ebf8ff;color:#2c5282;border:1px solid #90cdf4;}
+.s-InStudy{background:#e9d8fd;color:#553c9a;border:1px solid #d6bcfa;}
+.s-QueryRaised{background:var(--yellow-l);color:var(--yellow);border:1px solid #f6e05e;}
+.s-OnHold{background:var(--red-l);color:var(--red);border:1px solid #feb2b2;}
+.s-InProgress{background:var(--orange-l);color:var(--orange);border:1px solid #fbd38d;}
+.s-UnderChecking{background:#ebf8ff;color:#2b6cb0;border:1px solid #90cdf4;}
+.s-SenttoSales{background:var(--green-l);color:var(--green);border:1px solid #9ae6b4;}
+.s-RevisionReceived{background:var(--orange-l);color:var(--orange);border:1px solid #fbd38d;}
+.s-Completed{background:var(--green-l);color:var(--green);border:1px solid #68d391;}
+.s-delayed{background:var(--red-l);color:var(--red);border:1px solid #fc8181;}
+.s-ontrack{background:var(--green-l);color:var(--green);border:1px solid #9ae6b4;}
+.t-Study{background:#e9d8fd;color:#553c9a;}
+.t-Estimation{background:var(--green-l);color:var(--green);}
+.t-STAADDesign{background:#ebf8ff;color:#2b6cb0;}
+.t-Checking{background:var(--yellow-l);color:var(--yellow);}
+.t-Revision{background:var(--orange-l);color:var(--orange);}
+
+/* KANBAN */
+.kanban{display:flex;gap:11px;overflow-x:auto;padding-bottom:12px;}
+.kanban-col{min-width:190px;max-width:190px;background:#1e1e1e;border:1px solid #3a3a3a;border-radius:var(--radius2);overflow:hidden;box-shadow:var(--shadow);}
+.kanban-col-header{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;}
+.kanban-count{background:var(--surface3);color:var(--text2);font-size:10px;padding:1px 6px;border-radius:8px;font-family:var(--mono);}
+.kanban-cards{padding:7px;display:flex;flex-direction:column;gap:6px;min-height:40px;}
+.kcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px;cursor:pointer;transition:all 0.15s;border-left:3px solid #ccc;}
+.kcard:hover{box-shadow:var(--shadow);transform:translateY(-1px);}
+.kc-id{font-family:var(--mono);font-size:10px;color:var(--blue2);margin-bottom:3px;}
+.kc-name{font-size:12px;font-weight:600;margin-bottom:3px;line-height:1.3;color:var(--navy);}
+.kc-client{font-size:11px;color:var(--text3);margin-bottom:5px;}
+.kc-meta{display:flex;align-items:center;justify-content:space-between;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,41,66,0.65);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);width:100%;max-width:620px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);border-top:3px solid var(--yellow);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-head h2{font-size:14px;font-weight:700;color:var(--navy);}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:3px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:20px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--surface2);}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.07em;font-family:var(--mono);font-weight:500;}
+.form-input,.form-select,.form-textarea{background:var(--surface3);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 11px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color 0.15s;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue2);background:var(--surface);}
+.form-textarea{resize:vertical;min-height:60px;}
+.form-section-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--yellow);font-family:var(--mono);font-weight:600;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #3a3a3a;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab-btn{padding:8px 15px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--text3);font-family:var(--font);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+.tab-btn.active{color:var(--yellow);border-bottom-color:var(--yellow);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* DETAIL */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.detail-item .d-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono);margin-bottom:3px;}
+.detail-item .d-value{font-size:13px;font-weight:500;}
+.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.alert-danger{background:var(--red-l);border:1px solid #feb2b2;color:var(--red);}
+.alert-warning{background:var(--yellow-l);border:1px solid #f6e05e;color:var(--yellow);}
+.alert-info{background:var(--blue-light);border:1px solid #90cdf4;color:var(--blue);}
+.alert-success{background:var(--green-l);border:1px solid #9ae6b4;color:var(--green);}
+.time-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.te-date{font-family:var(--mono);font-size:11px;color:var(--text3);min-width:80px;}
+.te-hrs{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--blue2);min-width:40px;text-align:right;}
+.prog-wrap{background:var(--surface3);border-radius:4px;height:5px;overflow:hidden;}
+.prog-bar{height:100%;border-radius:4px;}
+.filter-bar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.chip{padding:4px 11px;border-radius:16px;font-size:11px;font-family:var(--mono);cursor:pointer;transition:all 0.15s;border:1px solid var(--border);background:var(--surface);color:var(--text2);}
+.chip.active{background:var(--yellow);color:#111;border-color:var(--yellow);font-weight:700;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.wl-row{display:flex;align-items:center;gap:12px;margin-bottom:9px;}
+.wl-name{font-size:12px;font-weight:600;min-width:115px;color:var(--navy);}
+.wl-bar{flex:1;}
+.wl-hrs{font-family:var(--mono);font-size:12px;color:var(--blue2);min-width:40px;text-align:right;font-weight:600;}
+.empty{padding:32px;text-align:center;color:var(--text3);}
+.collab-banner{background:linear-gradient(135deg,#111111,#2a2200);border-radius:var(--radius2);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;}
+.collab-banner-text h3{color:#fff;font-size:13px;font-weight:700;margin-bottom:2px;}
+.collab-banner-text p{color:rgba(255,255,255,0.6);font-size:12px;}
+
+/* ════════════════════════════════
+   SETTINGS PAGE STYLES
+════════════════════════════════ */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;box-shadow:var(--shadow);}
+.settings-card-head{padding:14px 18px;border-bottom:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:10px;border-left:4px solid var(--yellow);}
+.settings-card-head h3{font-size:14px;font-weight:700;color:var(--navy);flex:1;}
+.settings-card-body{padding:16px 18px;}
+.team-member-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.team-member-row:last-child{border-bottom:none;}
+.tm-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.tm-info{flex:1;}
+.tm-name{font-size:13px;font-weight:600;color:var(--navy);}
+.tm-role{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.tm-actions{display:flex;gap:6px;}
+.role-badge{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:10px;font-family:var(--mono);font-weight:600;}
+.role-full{background:#e9d8fd;color:#553c9a;}
+.role-tl{background:var(--blue-light);color:var(--blue);}
+.role-eng{background:var(--green-l);color:var(--green);}
+.add-member-form{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:14px;}
+.add-member-form h4{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;}
+.color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.color-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all 0.15s;}
+.color-swatch.selected{border-color:var(--navy);transform:scale(1.15);}
+.api-config-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.api-config-row:last-child{border-bottom:none;}
+.api-config-row .label{font-size:12px;font-weight:600;flex:1;color:var(--navy);}
+.api-config-row .val{font-size:11px;color:var(--text3);font-family:var(--mono);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hosting-step{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.hosting-step:last-child{border-bottom:none;}
+.hs-num{width:24px;height:24px;border-radius:50%;background:var(--yellow);color:#111;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.hs-content h4{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.hs-content p{font-size:12px;color:var(--text2);line-height:1.5;}
+.hs-content code{background:#0f2942;color:#a8d8ff;border-radius:5px;padding:4px 8px;font-family:var(--mono);font-size:11px;display:inline-block;margin-top:5px;}
+
+
+/* ── COLUMN CUSTOMISE PANEL ── */
+.col-panel{position:fixed;top:0;right:-310px;width:290px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:150;box-shadow:-6px 0 24px rgba(0,0,0,0.15);display:flex;flex-direction:column;transition:right 0.3s ease;}
+.col-panel.open{right:0;}
+.col-panel-head{padding:13px 15px;background:var(--surface2);border-bottom:2px solid var(--yellow);border-left:4px solid var(--yellow);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.col-panel-head h3{font-size:13px;font-weight:700;color:var(--navy);flex:1;}
+.col-panel-body{flex:1;overflow-y:auto;padding:12px;}
+.col-panel-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+.col-item{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:grab;user-select:none;transition:border-color 0.15s;}
+.col-item:active{cursor:grabbing;opacity:0.6;}
+.col-item.drag-over{border-color:var(--yellow);background:#2a2500;}
+.col-name{flex:1;font-size:13px;font-weight:500;}
+.col-toggle{width:34px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:background 0.2s;}
+.col-toggle.on{background:var(--yellow);}
+.col-toggle.off{background:#ccc;}
+.col-toggle::after{content:'';width:12px;height:12px;border-radius:50%;background:#111;position:absolute;top:3px;transition:left 0.2s;}
+.col-toggle.off::after{background:#fff;}
+.col-toggle.on::after{left:19px;}
+.col-toggle.off::after{left:3px;}
+.add-col-box{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);padding:11px;margin-top:12px;}
+.add-col-box h4{font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;}
+.col-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:5px 9px;font-size:11px;font-family:var(--mono);cursor:pointer;color:var(--text2);display:inline-flex;align-items:center;gap:4px;transition:all 0.15s;}
+.col-btn:hover{border-color:var(--yellow);color:var(--navy);}
+
+
+/* ── THEME SELECTOR ── */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:10px;margin-top:12px;}
+.theme-card{border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all 0.18s;}
+.theme-card:hover{transform:translateY(-2px);box-shadow:var(--shadow2);}
+.theme-card.active-theme{border-color:var(--yellow);box-shadow:0 0 0 3px rgba(245,196,0,0.2);}
+.theme-preview{height:48px;display:flex;overflow:hidden;}
+.tp-sidebar{width:30%;display:flex;flex-direction:column;gap:3px;padding:5px;}
+.tp-dot{height:3px;border-radius:2px;background:rgba(255,255,255,0.18);}
+.tp-dot-a{height:3px;border-radius:2px;}
+.tp-main{flex:1;padding:5px;display:flex;flex-direction:column;gap:3px;}
+.tp-topbar{height:6px;border-radius:2px;margin-bottom:2px;}
+.tp-cards{display:flex;gap:2px;flex:1;}
+.tp-card{flex:1;border-radius:3px;background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.05);}
+.theme-lbl{padding:5px 6px;font-size:10px;font-weight:700;font-family:var(--mono);text-align:center;background:#fff;border-top:1px solid #eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── DASHBOARD PIPELINE STRIP ── */
+.pipe-stage{flex:0 0 auto;min-width:105px;padding:12px 10px;border-right:1px solid var(--border);text-align:center;cursor:pointer;transition:background 0.15s;position:relative;}
+.pipe-stage:last-child{border-right:none;}
+.pipe-stage:hover{background:var(--surface2);}
+.pipe-stage-count{font-size:24px;font-weight:800;line-height:1;margin-bottom:4px;}
+.pipe-stage-label{font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;line-height:1.3;}
+.pipe-stage-dot{width:8px;height:8px;border-radius:50%;margin:0 auto 6px;}
+.pipe-stage.has-items{background:var(--surface2);}
+/* ── NEEDS ACTION CARDS ── */
+.action-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);margin-bottom:7px;cursor:pointer;transition:opacity 0.15s;border:1px solid transparent;}
+.action-card:hover{opacity:0.85;}
+.action-card:last-child{margin-bottom:0;}
+.action-card-icon{font-size:18px;flex-shrink:0;}
+.action-card-text .ac-count{font-size:20px;font-weight:800;line-height:1;}
+.action-card-text .ac-label{font-size:11px;opacity:0.8;font-family:var(--mono);}
+.action-none{padding:18px;text-align:center;color:var(--green);font-size:13px;font-weight:600;}
+/* ── WORKLOAD MINI CARDS ── */
+.wl-eng-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.wl-eng-top{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.wl-eng-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.wl-eng-name{font-size:13px;font-weight:700;color:var(--navy);}
+.wl-eng-role{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.wl-eng-projects{display:flex;flex-direction:column;gap:4px;}
+.wl-proj-row{display:flex;align-items:center;gap:6px;font-size:11px;}
+.wl-proj-id{font-family:var(--mono);font-size:10px;color:var(--blue2);font-weight:700;min-width:90px;}
+.wl-eng-empty{font-size:11px;color:var(--text3);font-style:italic;padding:4px 0;}
+.wl-eng-stats{display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.wl-stat-chip{font-size:10px;font-family:var(--mono);color:var(--text3);display:flex;align-items:center;gap:3px;}
+.wl-stat-chip b{color:var(--navy);font-weight:700;}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0}
+  .form-grid,.two-col,.settings-grid{grid-template-columns:1fr}
+}
+
+/* ── WORK TYPE SELECTOR BUTTONS ── */
+.wtype-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:14px;text-align:center;gap:3px;transition:all 0.15s;background:var(--surface2);color:var(--text2);user-select:none;}
+.wtype-btn span{font-size:10px;font-family:var(--mono);}
+.wtype-btn.selected{border-color:var(--yellow);background:#2a2500;color:var(--yellow);font-weight:700;}
+.wtype-btn:hover{border-color:var(--border2);background:var(--surface3);}
+
+</style>
+</head>
+<body>
+<div id="sync-bar"></div>
+<div id="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-text">Connecting...</span></div>
+
+<!-- ══ SETUP SCREEN ══ -->
+<!-- COLUMN CUSTOMISE PANEL -->
+<div class="col-panel" id="col-panel">
+  <div class="col-panel-head">
+    <h3>⚙️ Customise Columns</h3>
+    <button style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;line-height:1;" onclick="closeColPanel()">✕</button>
+  </div>
+  <div class="col-panel-body" id="col-panel-body"></div>
+  <div class="col-panel-footer">
+    <button class="btn btn-sm" style="background:var(--surface3);border:1px solid var(--border);color:var(--text2);" onclick="resetColConfig()">↺ Reset</button>
+    <button class="btn btn-primary btn-sm" onclick="closeColPanel()">✓ Done</button>
+  </div>
+</div>
+
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">// Indstaal</div>
+    <h1>Indstaal Project Hub</h1>
+    <p>Enter your Apps Script URL to connect. Team members will load automatically from Google Sheets.</p>
+
+    <div class="setup-step">
+      <div class="setup-step-num">1</div>
+      <h3>Paste your Apps Script URL</h3>
+      <p>Get this from your Google Sheet → Extensions → Apps Script → Deploy → Copy URL</p>
+      <input class="form-input" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:8px;font-family:var(--mono);font-size:11px;">
+      <button class="btn btn-ghost" onclick="loadUsersFromSheet()" style="margin-top:8px;width:100%;justify-content:center;">🔄 Load Team Members</button>
+    </div>
+
+    <div class="setup-step" id="login-step" style="display:none;">
+      <div class="setup-step-num">2</div>
+      <h3>Select your name and enter PIN</h3>
+      <div style="margin-top:8px;">
+        <label class="form-label">Your Name</label>
+        <select class="form-input" id="setup-user" style="margin-top:5px;" onchange="checkFirstLogin()">
+          <option value="">-- Select your name --</option>
+        </select>
+      </div>
+      <div style="margin-top:10px;">
+        <label class="form-label">Your PIN</label>
+        <input class="form-input" id="setup-pin" type="password" maxlength="4" placeholder="Enter your 4-digit PIN" style="margin-top:5px;letter-spacing:4px;" onkeydown="if(event.key==='Enter')connectToSheet()">
+      </div>
+      <div id="pin-info" style="font-size:11px;color:var(--yellow);margin-top:6px;display:none;"></div>
+    </div>
+
+    <div class="setup-divider"><span>or use without Google Sheets</span></div>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-bottom:4px;" onclick="useDemoMode()">🔬 Demo Mode — loads sample data</button>
+    <button class="btn btn-primary" onclick="connectToSheet()" style="margin-top:8px;width:100%;justify-content:center;" id="connect-btn">Connect →</button>
+    <div id="setup-error" style="color:var(--red);font-size:12px;text-align:center;margin-top:8px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div class="shell" id="app" style="display:none;">
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-eyebrow">// Indstaal</div>
+    <div class="logo-name">Project Hub</div>
+    <div class="logo-sub" id="sb-mode">Live · Google Sheets</div>
+  </div>
+  <div class="user-pill">
+    <div class="user-avatar" id="sb-avatar" style="background:var(--blue);color:#fff;">GM</div>
+    <div class="user-info"><div class="uname" id="sb-name">GM</div><div class="urole" id="sb-role">Full Access</div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">⬛</span>Dashboard</div>
+    <div class="nav-label">Projects</div>
+    <div class="nav-item" onclick="navigate('quotations')"><span class="nav-icon">📋</span>Quotations<span class="nav-badge" id="nb-active">0</span><span class="nav-badge" id="nb-assign" style="display:none;background:#b7791f;">!</span></div>
+    <div class="nav-item" onclick="navigate('kanban')"><span class="nav-icon">🗂</span>Kanban Board</div>
+    <div class="nav-item" onclick="navigate('onhold')"><span class="nav-icon">⏸</span>On Hold<span class="nav-badge" id="nb-hold">0</span></div>
+    <div class="nav-label">Work</div>
+    <div class="nav-item" id="nav-tasks" onclick="navigate('tasks')"><span class="nav-icon">✅</span>Tasks</div>
+    <div class="nav-item" onclick="navigate('timelog')"><span class="nav-icon">⏱</span>Time Log</div>
+    <div class="nav-label">Team</div>
+    <div class="nav-item" onclick="navigate('teamview')"><span class="nav-icon">👥</span>Team View</div>
+    <div class="nav-label">Reports</div>
+    <div class="nav-item" onclick="navigate('workload')"><span class="nav-icon">👷</span>Workload</div>
+    <div class="nav-item" onclick="navigate('reports')"><span class="nav-icon">📊</span>Reports</div>
+    <div class="nav-label">Admin</div>
+    <div class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙️</span>Settings</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="conn-status"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">Connected</span></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+      <button class="btn btn-xs btn-ghost" style="color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1);" onclick="fetchAll()">↻ Sync</button>
+      <button class="btn btn-xs btn-ghost" style="color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1);" onclick="openModal('m-changepin')">🔑 PIN</button>
+      <button class="btn btn-xs btn-ghost" style="color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1);" onclick="disconnect()">⏏ Exit</button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+<div class="topbar">
+  <div class="topbar-title"><span class="topbar-brand">Indstaal</span><span class="topbar-sub">Operations</span></div>
+  <div class="user-switcher" id="user-switcher"></div>
+  <div id="topbar-actions" style="display:flex;gap:6px;align-items:center;margin-left:8px;"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+
+  <!-- HEADER -->
+  <div class="section-hdr" style="margin-bottom:14px;">
+    <div>
+      <h2 id="dash-title">Dashboard</h2>
+      <p style="font-size:12px;color:var(--text3);margin-top:2px;" id="dash-greeting"></p>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="fetchAll()">↻ Refresh</button>
+  </div>
+
+  <!-- ROLE CONTEXT BANNER -->
+  <div id="dash-role-banner" style="margin-bottom:16px;"></div>
+
+  <!-- SECTION 1: WHO IS WORKING ON WHAT (top priority) -->
+  <div class="table-wrap" style="margin-bottom:16px;">
+    <div class="table-header">
+      <h3>👷 Who is Working on What</h3>
+      <span id="dash-eng-summary" style="font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
+    </div>
+    <div id="dash-eng-grid" style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;"></div>
+  </div>
+
+  <!-- SECTION 2: PIPELINE + ALERTS -->
+  <div style="display:grid;grid-template-columns:1fr 210px;gap:16px;margin-bottom:16px;">
+    <div class="table-wrap">
+      <div class="table-header"><h3>📦 Pipeline</h3><span style="font-size:11px;color:var(--text3);font-family:var(--mono);">Click any stage to view quotations</span></div>
+      <div id="dash-pipeline" style="display:flex;flex-wrap:wrap;"></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><h3>🚨 Alerts</h3></div>
+      <div id="dash-alerts" style="padding:10px 12px;"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: ACTIVE QUOTATIONS TABLE -->
+  <div class="table-wrap" style="margin-bottom:16px;">
+    <div class="table-header">
+      <h3>📋 Active Quotations</h3>
+      <span id="dash-active-count" style="font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
+      <button class="col-btn" onclick="navigate('quotations')" style="margin-left:auto;">View All →</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>QUO ID</th><th>Project</th><th>Client</th>
+          <th>Engineer</th><th>TL</th><th>Status</th>
+          <th>Days</th><th>Hrs</th><th>Deadline</th>
+        </tr></thead>
+        <tbody id="dash-active-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 4: HOURS BY WORK TYPE (bottom strip) -->
+  <div class="table-wrap">
+    <div class="table-header"><h3>⏱ Hours by Work Type</h3></div>
+    <div id="d-typehrs" style="padding:12px 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+  </div>
+
+</div>
+
+<!-- QUOTATIONS -->
+<div class="page" id="page-quotations">
+  <div class="section-hdr"><div><h2>Quotations</h2></div><button class="btn btn-primary btn-sm" onclick="openModal('m-quotation')">+ New</button></div>
+  <div class="filter-bar" id="q-filters"></div>
+  <div class="table-wrap">
+    <div class="table-header"><h3>All Quotations</h3><button class="col-btn" onclick="openColPanel('quotations')">⚙️ Columns</button><input class="search-input" placeholder="Search..." oninput="renderQ()" id="q-search"></div>
+    <table><thead id="q-thead"><tr><th>QUO ID</th><th>Project / Client</th><th>Engineer</th><th>Status</th><th>Days</th><th>Hours</th><th>Delay</th><th>Rev</th><th></th></tr></thead>
+    <tbody id="q-tbody"><tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text3);font-family:var(--mono);font-size:12px;">⏳ Loading...</td></tr></tbody></table>
+  </div>
+</div>
+
+<!-- KANBAN -->
+<div class="page" id="page-kanban">
+  <div class="section-hdr"><div><h2>Kanban Board</h2></div><button class="btn btn-ghost btn-sm" onclick="fetchAll()">↻ Refresh</button></div>
+  <div class="kanban" id="kanban-board"></div>
+</div>
+
+<!-- ON HOLD -->
+<div class="page" id="page-onhold">
+  <div class="section-hdr"><div><h2>On Hold</h2></div></div>
+  <div class="table-wrap"><table><thead><tr><th>QUO ID</th><th>Project</th><th>Engineer</th><th>Hold Reason</th><th>Since</th><th>Days</th><th></th></tr></thead><tbody id="hold-tbody"></tbody></table></div>
+</div>
+
+<!-- DELAYED -->
+<div class="page" id="page-delayed">
+  <div class="section-hdr"><div><h2>Delayed Projects</h2></div></div>
+  <div class="table-wrap"><table><thead><tr><th>QUO ID</th><th>Project</th><th>Engineer</th><th>Status</th><th>Deadline</th><th>Overdue By</th></tr></thead><tbody id="delay-tbody"></tbody></table></div>
+</div>
+
+<!-- DAILY ACTIVITY LOG -->
+<div class="page" id="page-dailylog">
+  <div class="section-hdr">
+    <div><h2>📝 Daily Activity Log</h2><p style="font-size:12px;color:var(--text3);">Log what each engineer worked on today — step by step</p></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-dailylog')">+ Log Activity</button>
+  </div>
+  <div class="stats-grid" id="dl-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px;"></div>
+  <div class="filter-bar" id="dl-filters"></div>
+  <div id="dl-list"></div>
+</div>
+
+<!-- TASKS -->
+<div class="page" id="page-tasks">
+  <div class="section-hdr"><div><h2>Tasks</h2></div><button class="btn btn-primary btn-sm" onclick="openModal('m-task')">+ Task</button></div>
+  <div class="filter-bar" id="t-filters"></div>
+  <div class="table-wrap"><div class="table-header"><h3>All Tasks</h3><button class="col-btn" onclick="openColPanel('tasks')">⚙️ Columns</button></div>
+  <table><thead id="t-thead"><tr><th>Task</th><th>QUO ID</th><th>Type</th><th>Assigned To</th><th>Status</th><th>Est.</th><th>Logged</th></tr></thead><tbody id="t-tbody"></tbody></table></div>
+</div>
+
+<!-- TIME LOG -->
+<div class="page" id="page-timelog">
+  <div class="section-hdr"><div><h2>Time Log</h2></div><button class="btn btn-primary btn-sm" onclick="openModal('m-timelog')">+ Log Time</button></div>
+  <div class="stats-grid" id="tl-stats"></div>
+  <div class="tabs" style="margin-bottom:14px;">
+    <button class="tab-btn active" onclick="swTab(this,'tl-tab-today')">📅 Today's Work</button>
+    <button class="tab-btn" onclick="swTab(this,'tl-tab-quotation')">📋 By Quotation</button>
+    <button class="tab-btn" onclick="swTab(this,'tl-tab-all')">🕒 All Entries</button>
+  </div>
+  <div class="tab-content active" id="tl-tab-today"><div id="tl-today-content"></div></div>
+  <div class="tab-content" id="tl-tab-quotation"><div id="tl-byquot-content"></div></div>
+  <div class="tab-content" id="tl-tab-all">
+    <div class="table-wrap"><div class="table-header"><h3>All Entries</h3><button class="col-btn" onclick="openColPanel('timelog')">⚙️ Columns</button></div>
+    <div style="overflow-x:auto;"><table><thead id="tl-thead"><tr><th>Date</th><th>Engineer</th><th>QUO ID</th><th>Work Type</th><th>Hours</th><th>Description</th></tr></thead><tbody id="tl-tbody"></tbody></table></div></div>
+  </div>
+</div>
+
+<!-- WORKLOAD -->
+<!-- TEAM VIEW PAGE -->
+<div class="page" id="page-teamview">
+  <div class="section-hdr">
+    <div><h2>👥 Team View</h2><p style="font-size:13px;color:var(--text3);">Each Team Lead's engineers and their active projects</p></div>
+    <button class="btn btn-ghost btn-sm" onclick="fetchAll()">↻ Refresh</button>
+  </div>
+  <div id="tl-team-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
+</div>
+
+<div class="page" id="page-workload">
+  <div class="section-hdr"><div><h2>Engineer Workload</h2></div></div>
+  <div id="wl-content"></div>
+</div>
+
+<!-- REPORTS -->
+<div class="page" id="page-reports">
+  <div class="section-hdr"><div><h2>Reports</h2></div></div>
+  <div id="rpt-content"></div>
+</div>
+
+<!-- ════════════════════════════════
+     SETTINGS PAGE
+════════════════════════════════ -->
+<div class="page" id="page-settings">
+  <div class="section-hdr"><div><h2>⚙️ Settings</h2><p style="font-size:13px;color:var(--text3);">Manage team members, API connection, and hosting</p></div></div>
+
+  <div class="settings-grid">
+
+
+    <!-- THEMES -->
+    <div class="settings-card" style="grid-column:1/-1;">
+      <div class="settings-card-head">
+        <h3>🎨 App Theme</h3>
+        <span style="font-size:12px;color:var(--text3);font-family:var(--mono);" id="theme-name-display">Yellow &amp; Black</span>
+      </div>
+      <div class="settings-card-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:6px;">Click any theme to apply instantly. Your choice is remembered.</p>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+    </div>
+
+    <!-- TEAM MEMBERS -->
+    <div class="settings-card" style="grid-column:1/-1;">
+      <div class="settings-card-head">
+        <h3>👷 Team Members</h3>
+        <span style="font-size:12px;color:var(--text3);font-family:var(--mono);" id="member-count">0 members</span>
+      </div>
+      <div class="settings-card-body">
+
+        <!-- TABS: Engineers | Team Leads -->
+        <div class="tabs" style="margin-bottom:16px;">
+          <button class="tab-btn active" onclick="swSettingsTab(this,'st-engineers')">👷 Engineers</button>
+          <button class="tab-btn" onclick="swSettingsTab(this,'st-leads')">🧑‍💼 Team Leads</button>
+          <button class="tab-btn" onclick="swSettingsTab(this,'st-gm')">👑 GM / Manager</button>
+        </div>
+
+        <!-- ENGINEERS TAB -->
+        <div class="tab-content active" id="st-engineers">
+          <div id="members-list-eng"></div>
+          <div class="add-member-form" style="margin-top:14px;">
+            <h4>➕ Add Design Engineer</h4>
+            <div class="form-grid" style="margin-bottom:12px;">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input class="form-input" id="nm-name" placeholder="e.g. Rajesh Kumar">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Assign to Team Lead</label>
+                <select class="form-select" id="nm-tl-assign">
+                  <option value="">-- No TL assigned yet --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Initials (up to 3 letters)</label>
+                <input class="form-input" id="nm-initials" placeholder="RKS" maxlength="3" style="text-transform:uppercase;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Login PIN (4 digits)</label>
+                <input class="form-input" id="nm-pin" type="password" maxlength="4" placeholder="e.g. 1234" style="letter-spacing:4px;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Avatar Colour — click to pick</label>
+                <div class="color-row" id="color-picker"></div>
+                <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                  <div id="color-preview" style="width:30px;height:30px;border-radius:50%;background:#f5c400;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#111;" id="nm-preview">?</div>
+                  <span style="font-size:11px;color:var(--text3);">Selected colour preview</span>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="nm-role" value="Design Engineer">
+            <button class="btn btn-primary btn-sm" style="width:auto;" onclick="addMember()">Add Engineer</button>
+          </div>
+        </div>
+
+        <!-- TEAM LEADS TAB -->
+        <div class="tab-content" id="st-leads">
+          <div id="members-list-tl"></div>
+          <div class="add-member-form" style="margin-top:14px;">
+            <h4>➕ Add Team Lead</h4>
+            <div class="form-grid" style="margin-bottom:12px;">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input class="form-input" id="tl-name" placeholder="e.g. Vikram Nair">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Initials (up to 3 letters)</label>
+                <input class="form-input" id="tl-initials" placeholder="VN" maxlength="3" style="text-transform:uppercase;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Login PIN (4 digits)</label>
+                <input class="form-input" id="tl-pin" type="password" maxlength="4" placeholder="e.g. 5678" style="letter-spacing:4px;">
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Avatar Colour — click to pick</label>
+                <div class="color-row" id="tl-color-picker"></div>
+                <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                  <div id="tl-color-preview" style="width:30px;height:30px;border-radius:50%;background:#f5c400;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#111;"></div>
+                  <span style="font-size:11px;color:var(--text3);">Selected colour preview</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="width:auto;" onclick="addTeamLead()">Add Team Lead</button>
+          </div>
+        </div>
+
+        <!-- GM TAB -->
+        <div class="tab-content" id="st-gm">
+          <div id="members-list-gm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API CONFIGURATION -->
+    <div class="settings-card">
+      <div class="settings-card-head"><h3>🔗 Google Sheets Connection</h3></div>
+      <div class="settings-card-body">
+        <div class="api-config-row">
+          <span class="label">Status</span>
+          <span id="cfg-status" style="font-size:12px;font-weight:600;color:var(--green);">Connected</span>
+        </div>
+        <div class="api-config-row">
+          <span class="label">API URL</span>
+          <span class="val" id="cfg-url">—</span>
+        </div>
+        <div class="api-config-row">
+          <span class="label">Mode</span>
+          <span class="val" id="cfg-mode">—</span>
+        </div>
+        <div class="api-config-row">
+          <span class="label">Last Sync</span>
+          <span class="val" id="cfg-sync">—</span>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="fetchAll()">↻ Sync Now</button>
+          <button class="btn btn-danger btn-sm" onclick="disconnect()">Disconnect</button>
+        </div>
+
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+          <div class="form-section-title">Change API URL</div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">New Apps Script URL</label>
+            <input class="form-input" id="new-api-url" placeholder="https://script.google.com/..." style="font-family:var(--mono);font-size:11px;">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="updateApiUrl()">Update URL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOSTING GUIDE -->
+    <div class="settings-card">
+      <div class="settings-card-head"><h3>🌐 Host Online (GitHub Pages)</h3></div>
+      <div class="settings-card-body">
+        <div class="alert alert-success" style="margin-bottom:14px;">✅ Free hosting — one link for your whole team. Takes 5 minutes.</div>
+
+        <div class="hosting-step">
+          <div class="hs-num">1</div>
+          <div class="hs-content">
+            <h4>Create a GitHub account</h4>
+            <p>Go to <strong>github.com</strong> → Sign Up (free). Use your company email.</p>
+          </div>
+        </div>
+        <div class="hosting-step">
+          <div class="hs-num">2</div>
+          <div class="hs-content">
+            <h4>Create a new repository</h4>
+            <p>Click <strong>+ → New repository</strong> → Name it <strong>peb-system</strong> → Set to <strong>Public</strong> → Create repository</p>
+          </div>
+        </div>
+        <div class="hosting-step">
+          <div class="hs-num">3</div>
+          <div class="hs-content">
+            <h4>Upload this HTML file</h4>
+            <p>In your repository → Click <strong>Add file → Upload files</strong> → Upload <strong>PEB_Final_WebApp.html</strong> → Rename it to exactly:</p>
+            <code>index.html</code>
+          </div>
+        </div>
+        <div class="hosting-step">
+          <div class="hs-num">4</div>
+          <div class="hs-content">
+            <h4>Enable GitHub Pages</h4>
+            <p>Repository → <strong>Settings → Pages → Source: main branch → Save</strong></p>
+            <p style="margin-top:5px;">Your live link will be:</p>
+            <code>https://YOUR-USERNAME.github.io/peb-system</code>
+          </div>
+        </div>
+        <div class="hosting-step">
+          <div class="hs-num">5</div>
+          <div class="hs-content">
+            <h4>Share the link</h4>
+            <p>Send this one link to every team member. They open it in any browser — phone, laptop, anywhere. No installation needed.</p>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding:12px;background:var(--yellow-l);border:1px solid #f6e05e;border-radius:var(--radius);">
+          <div style="font-size:12px;color:var(--yellow);font-weight:600;margin-bottom:4px;">⚠️ Important after hosting</div>
+          <div style="font-size:12px;color:var(--text2);">Each team member opens the link → pastes the Google Apps Script URL once → selects their name → they're connected. Settings are saved in their browser.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end settings-grid -->
+</div><!-- end settings page -->
+
+</main>
+</div><!-- end shell -->
+
+<!-- ASSIGN ENGINEER MODAL -->
+<div class="modal-overlay" id="m-assign">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-head"><h2>👷 Assign Engineer</h2><button class="modal-close" onclick="closeModal('m-assign')">✕</button></div>
+    <div class="modal-body">
+      <div id="assign-qinfo" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:13px;"></div>
+      <div class="form-group">
+        <label class="form-label">Select Engineer to Assign</label>
+        <select class="form-select" id="assign-eng-sel"></select>
+      </div>
+      <input type="hidden" id="assign-qid">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost-dark" onclick="closeModal('m-assign')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAssignEngineer()">✓ Assign & Notify</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+<div class="modal-overlay" id="m-quotation">
+  <div class="modal"><div class="modal-head"><h2>📋 New Quotation</h2><button class="modal-close" onclick="closeModal('m-quotation')">✕</button></div>
+  <div class="modal-body">
+    <div class="form-section-title" style="margin-bottom:12px;">Project Information</div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div class="form-group"><label class="form-label">Quotation ID</label><input class="form-input" id="q-id" placeholder="QUO-2025-006"/></div>
+      <div class="form-group"><label class="form-label">Date Received</label><input class="form-input" id="q-date" type="date"/></div>
+      <div class="form-group full"><label class="form-label">Client Name</label><input class="form-input" id="q-name" placeholder="e.g. Mahindra Logistics"/></div>
+      <div class="form-group"><label class="form-label">Consultant Name</label><input class="form-input" id="q-client" placeholder="e.g. ABC Consultants (optional)"/></div>
+      <div class="form-group"><label class="form-label">Project Type</label><select class="form-select" id="q-ptype"><option value="Quote">Quote Stage</option><option value="Job">Job Stage</option></select></div>
+      <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" id="q-deadline" type="date"/></div>
+    </div>
+    <div class="form-section-title" style="margin-bottom:12px;">Assignment</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Team Lead</label><select class="form-select" id="q-tl" onchange="filterEngByTL()"></select></div>
+      <div class="form-group"><label class="form-label">Engineer <span style="color:var(--text3);font-size:10px;">(select TL first)</span></label><select class="form-select" id="q-eng"><option value="">— Select TL first —</option></select></div>
+      <div class="form-group full"><label class="form-label">Notes / QRF Reference</label><textarea class="form-textarea" id="q-notes" placeholder="QRF ref, tender doc names, special requirements..."></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-quotation')">Cancel</button><button class="btn btn-primary" onclick="saveQ()">Save</button></div></div>
+</div>
+
+<div class="modal-overlay" id="m-task">
+  <div class="modal" style="max-width:490px;"><div class="modal-head"><h2>✅ New Task</h2><button class="modal-close" onclick="closeModal('m-task')">✕</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Linked Quotation</label><select class="form-select" id="t-quot"></select></div>
+      <div class="form-group full"><label class="form-label">Task Name</label><input class="form-input" id="t-name" placeholder="e.g. Estimation – QUO-2025-001"/></div>
+      <div class="form-group"><label class="form-label">Task Type</label><select class="form-select" id="t-type"><option>Study</option><option>Estimation</option><option>STAAD Design</option><option>Checking</option><option>Revision</option></select></div>
+      <div class="form-group"><label class="form-label">Assigned To</label><select class="form-select" id="t-eng"></select></div>
+      <div class="form-group"><label class="form-label">Start Date</label><input class="form-input" id="t-start" type="date"/></div>
+      <div class="form-group"><label class="form-label">Est. Hours</label><input class="form-input" id="t-hrs" type="number" placeholder="4"/></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="t-status"><option>Not Started</option><option>In Progress</option><option>Completed</option></select></div>
+      <div class="form-group"><label class="form-label">Revision #</label><input class="form-input" id="t-rev" type="number" value="0"/></div>
+      <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-textarea" id="t-notes"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-task')">Cancel</button><button class="btn btn-primary" onclick="saveTask()">Save</button></div></div>
+</div>
+
+<div class="modal-overlay" id="m-timelog">
+  <div class="modal" style="max-width:420px;"><div class="modal-head"><h2>⏱ Log Time</h2><button class="modal-close" onclick="closeModal('m-timelog')">✕</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Quotation</label><select class="form-select" id="tl-quot"></select></div>
+      <div class="form-group full" id="tl-eng-row" style="display:none;"><label class="form-label">Logging for <span style="font-size:10px;color:var(--text3);">(GM/TL only)</span></label><select class="form-select" id="tl-eng"></select></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="tl-date" type="date"/></div>
+      <div class="form-group"><label class="form-label">Hours</label><input class="form-input" id="tl-hrs" type="number" step="0.5" placeholder="3.5"/></div>
+      <div class="form-group full"><label class="form-label">Work Type</label><select class="form-select" id="tl-type"><option>Study</option><option>Estimation</option><option>STAAD Design</option><option>Checking</option><option>Revision</option></select></div>
+      <div class="form-group full"><label class="form-label">Description</label><textarea class="form-textarea" id="tl-desc" placeholder="What was done..."></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-timelog')">Cancel</button><button class="btn btn-primary" onclick="saveLog()">Save</button></div></div>
+</div>
+
+<div class="modal-overlay" id="m-status">
+  <div class="modal" style="max-width:420px;"><div class="modal-head"><h2>Update Status</h2><button class="modal-close" onclick="closeModal('m-status')">✕</button></div>
+  <div class="modal-body">
+    <div id="us-qinfo" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;margin-bottom:14px;font-size:13px;"></div>
+    <div class="form-group" style="margin-bottom:13px;">
+      <label class="form-label">Move to</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;" id="us-status-grid"></div>
+      <input type="hidden" id="us-status">
+    </div>
+    <!-- On Hold reason -->
+    <div id="hold-fields" style="display:none;">
+      <div class="form-group" style="margin-bottom:13px;">
+        <label class="form-label">Reason for Hold</label>
+        <textarea class="form-textarea" id="us-reason" placeholder="e.g. Awaiting wind load data from client..." style="min-height:55px;"></textarea>
+      </div>
+    </div>
+    <!-- Revision fields -->
+    <div id="rev-fields" style="display:none;">
+      <div class="form-group" style="margin-bottom:13px;">
+        <label class="form-label">Revision involves</label>
+        <div style="display:flex;gap:16px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="rev-est"> Estimation</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="rev-staad"> STAAD Design</label>
+        </div>
+      </div>
+    </div>
+    <!-- Sent to Sales checklist -->
+    <div id="sales-fields" style="display:none;">
+      <div class="form-group" style="margin-bottom:6px;">
+        <label class="form-label">Confirm items sent to Sales</label>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:6px;display:flex;flex-direction:column;gap:10px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+            <input type="checkbox" id="sales-est" style="width:16px;height:16px;">
+            <div><div style="font-weight:600;">📊 Estimation</div><div style="font-size:11px;color:var(--text3);">Excel estimation sheet sent to sales team</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+            <input type="checkbox" id="sales-drawing" style="width:16px;height:16px;">
+            <div><div style="font-weight:600;">📐 Proposal Drawing</div><div style="font-size:11px;color:var(--text3);">Proposal drawing sent to sales team</div></div>
+          </label>
+        </div>
+        <div id="sales-warn" style="color:var(--yellow);font-size:11px;margin-top:6px;display:none;">⚠️ Please confirm both items have been sent before proceeding.</div>
+      </div>
+    </div>
+    <input type="hidden" id="us-qid">
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-status')">Cancel</button><button class="btn btn-primary" onclick="applyStatus()">Update</button></div></div>
+</div>
+
+<div class="modal-overlay" id="m-detail">
+  <div class="modal" style="max-width:740px;"><div class="modal-head"><h2 id="dt-title">Detail</h2><button class="modal-close" onclick="closeModal('m-detail')">✕</button></div>
+  <div class="modal-body" id="dt-body"></div>
+  <div class="modal-footer" id="dt-footer"></div></div>
+</div>
+
+<!-- EDIT MEMBER MODAL -->
+<div class="modal-overlay" id="m-editmember">
+  <div class="modal" style="max-width:400px;"><div class="modal-head"><h2>✏️ Edit Member</h2><button class="modal-close" onclick="closeModal('m-editmember')">✕</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="em-idx">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Full Name</label><input class="form-input" id="em-name"></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-select" id="em-role" onchange="toggleEmTLField()"><option value="Full Access">GM / Manager</option><option value="Team Lead">Team Lead</option><option value="Design Engineer">Design Engineer</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Initials</label><input class="form-input" id="em-initials" maxlength="3" style="text-transform:uppercase;"></div>
+      <div class="form-group"><label class="form-label">Login PIN (4 digits)</label><input class="form-input" id="em-pin" type="password" maxlength="4" placeholder="Leave blank to keep current" style="letter-spacing:4px;"></div>
+      <div class="form-group full" id="em-tl-row"><label class="form-label">Assign to Team Lead</label><select class="form-select" id="em-tl-assign"><option value="">-- No TL --</option></select></div>
+      <div class="form-group full"><label class="form-label">Avatar Colour — click to pick</label><div class="color-row" id="em-color-picker"></div><div style="margin-top:6px;display:flex;align-items:center;gap:8px;"><div id="em-color-preview-box" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;"></div><span style="font-size:11px;color:var(--text3);">Selected colour</span></div></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-editmember')">Cancel</button><button class="btn btn-primary" onclick="saveMemberEdit()">Save Changes</button></div></div>
+</div>
+
+<!-- CHANGE PIN MODAL -->
+<div class="modal-overlay" id="m-changepin">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-head"><h2>🔑 Change My PIN</h2><button class="modal-close" onclick="closeModal('m-changepin')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:13px;">
+        <label class="form-label">Current PIN</label>
+        <input class="form-input" id="cp-current" type="password" maxlength="4" placeholder="Enter current PIN" style="letter-spacing:4px;">
+      </div>
+      <div class="form-group" style="margin-bottom:13px;">
+        <label class="form-label">New PIN (4 digits)</label>
+        <input class="form-input" id="cp-new" type="password" maxlength="4" placeholder="Enter new PIN" style="letter-spacing:4px;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm New PIN</label>
+        <input class="form-input" id="cp-confirm" type="password" maxlength="4" placeholder="Repeat new PIN" style="letter-spacing:4px;" onkeydown="if(event.key==='Enter')saveChangePin()">
+      </div>
+      <div id="cp-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('m-changepin')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveChangePin()">Save New PIN</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="m-dailylog">
+  <div class="modal"><div class="modal-head"><h2>📝 Log Daily Activity</h2><button class="modal-close" onclick="closeModal('m-dailylog')">✕</button></div>
+  <div class="modal-body">
+    <div class="form-grid" style="margin-bottom:12px;">
+      <div class="form-group"><label class="form-label">Engineer</label><select class="form-select" id="dl-eng"></select></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="dl-date" type="date"/></div>
+      <div class="form-group full"><label class="form-label">Quotation / Project</label><select class="form-select" id="dl-quot"></select></div>
+      <div class="form-group"><label class="form-label">Project Stage</label><select class="form-select" id="dl-stage" onchange="updateDLSteps()"><option value="Quote">Quote Stage</option><option value="Job">Job Stage</option></select></div>
+      <div class="form-group"><label class="form-label">Step No.</label><select class="form-select" id="dl-step"></select></div>
+      <div class="form-group full"><label class="form-label">Status</label>
+        <select class="form-select" id="dl-status">
+          <option value="WIP">WIP — Work In Progress</option>
+          <option value="Done">Done — Completed</option>
+          <option value="Under Review">Under Review</option>
+          <option value="Blocked">Blocked</option>
+        </select>
+      </div>
+      <div class="form-group full"><label class="form-label">Task Done Today</label><textarea class="form-textarea" id="dl-task" placeholder="Describe what was worked on or completed today..." style="min-height:60px;"></textarea></div>
+      <div class="form-group full">
+        <label class="form-label">Files Submitted / Shared</label>
+        <div style="display:flex;gap:7px;margin-bottom:7px;">
+          <select class="form-select" id="dl-file-sel" style="flex:1;">
+            <option value="">— Select file type —</option>
+            <optgroup label="Quote Stage">
+              <option>QRF</option><option>QRF-R1</option><option>QRF-R2</option>
+              <option>Estimate</option><option>Estimate-R1</option>
+              <option>Proposal Sketches</option><option>STAAD File</option><option>Excel</option><option>Others</option>
+            </optgroup>
+            <optgroup label="Job Stage">
+              <option>JDS</option><option>JDS-R1</option><option>JDS-R2</option>
+              <option>Design Sketches</option><option>STAAD File</option><option>Excel</option><option>Others</option>
+            </optgroup>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="dlAddFile()">+ Add</button>
+        </div>
+        <div id="dl-file-chips" style="display:flex;gap:5px;flex-wrap:wrap;min-height:22px;"></div>
+      </div>
+      <div class="form-group full"><label class="form-label">⚠️ Pending / Blockers</label><textarea class="form-textarea" id="dl-blocker" placeholder="Any blockers, pending items, or waiting on..." style="min-height:46px;"></textarea></div>
+      <div class="form-group full"><label class="form-label">→ Next Action Planned</label><textarea class="form-textarea" id="dl-next" placeholder="What will be done tomorrow / next..." style="min-height:46px;"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-dailylog')">Cancel</button><button class="btn btn-primary" onclick="saveDailyLog()">Save Log</button></div></div>
+</div>
+
+
+<!-- EDIT QUOTATION MODAL -->
+<div class="modal-overlay" id="m-edit-quotation">
+  <div class="modal"><div class="modal-head"><h2>✏️ Edit Quotation</h2><button class="modal-close" onclick="closeModal('m-edit-quotation')">✕</button></div>
+  <div class="modal-body">
+    <div class="form-section-title" style="margin-bottom:12px;">Project Information</div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div class="form-group"><label class="form-label">Quotation ID</label><input class="form-input" id="eq-id" placeholder="QUO-2025-006"/></div>
+      <div class="form-group"><label class="form-label">Date Received</label><input class="form-input" id="eq-date" type="date"/></div>
+      <div class="form-group full"><label class="form-label">Client Name</label><input class="form-input" id="eq-name" placeholder="e.g. Mahindra Logistics"/></div>
+      <div class="form-group"><label class="form-label">Consultant Name</label><input class="form-input" id="eq-client" placeholder="e.g. ABC Consultants (optional)"/></div>
+      <div class="form-group"><label class="form-label">Project Type</label><select class="form-select" id="eq-ptype"><option value="Quote">Quote Stage</option><option value="Job">Job Stage</option></select></div>
+      <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" id="eq-deadline" type="date"/></div>
+    </div>
+    <div class="form-section-title" style="margin-bottom:12px;">Assignment</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Team Lead</label><select class="form-select" id="eq-tl" onchange="filterEditEngByTL()"></select></div>
+      <div class="form-group"><label class="form-label">Engineer</label><select class="form-select" id="eq-eng"></select></div>
+      <div class="form-group full"><label class="form-label">Notes / QRF Reference</label><textarea class="form-textarea" id="eq-notes" placeholder="QRF ref, tender doc names, special requirements..."></textarea></div>
+    </div>
+    <input type="hidden" id="eq-qinternal-id">
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-edit-quotation')">Cancel</button><button class="btn btn-primary" onclick="saveEditQuotation()">Save Changes</button></div></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CORE STATE
+// ══════════════════════════════════════════════════════════════
+let API_URL='', DEMO_MODE=false;
+let db={quotations:[],tasks:[],logs:[],activityLogs:[]};
+let currentUser={name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM'};
+let syncInterval=null;
+let lastSyncTime=null;
+
+// ── DEFAULT TEAM (editable via Settings) ──
+const DEFAULT_USERS=[
+  {name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM',assignedTL:'',pin:'0000'},
+];
+// ⬆ Fallback only for Demo Mode. Real users come from Google Sheets → Users tab.
+
+const AVATAR_COLORS=['#0f2942','#1a5eb8','#2d7dd2','#6b46c1','#0d7a4a','#b7791f','#c05621','#c53030','#2c7a7b','#744210','#553c9a','#276749'];
+
+// In-memory user cache (loaded from Sheets on login)
+let usersCache=[];
+
+function getUsers(){
+  if(usersCache.length>0)return usersCache;
+  // Fallback: localStorage (for demo mode or offline)
+  try{
+    const s=localStorage.getItem('peb_users');
+    if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.length>0)return p;}
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_USERS));
+}
+
+function setUsersCache(users){
+  usersCache=users;
+  // Also save to localStorage as fallback
+  try{localStorage.setItem('peb_users',JSON.stringify(users));}catch(e){}
+}
+
+async function saveUsers(users){
+  setUsersCache(users);
+  if(!DEMO_MODE&&API_URL){
+    try{await apiCall('saveUsers',{users});}
+    catch(e){console.warn('saveUsers sync failed',e);}
+  }
+}
+
+function getTLs(){return getUsers().filter(u=>u.role==='Team Lead'||u.role==='Full Access');}
+function getEngineers(){return getUsers().filter(u=>u.role==='Design Engineer'||u.role==='Team Lead');}
+
+// ── Load users from Google Sheets before login ────────────────
+async function loadUsersFromSheet(){
+  const url=document.getElementById('api-url-input').value.trim();
+  if(!url||!url.includes('script.google.com')){
+    showSetupError('Please paste a valid Apps Script URL first');return;
+  }
+  API_URL=url;
+  localStorage.setItem('peb_api_url',url);
+  const btn=document.querySelector('[onclick="loadUsersFromSheet()"]');
+  if(btn){btn.textContent='⏳ Loading...';btn.disabled=true;}
+  try{
+    const res=await fetch(API_URL+'?action=getUsers',{redirect:'follow'});
+    const data=await res.json();
+    if(data.users&&Array.isArray(data.users)&&data.users.length>0){
+      // Users exist in sheet — load them
+      setUsersCache(data.users);
+      populateSetupUserList();
+      document.getElementById('login-step').style.display='block';
+      if(btn){btn.textContent='✅ Team loaded — select your name below';btn.disabled=false;}
+    } else {
+      // No users yet — first time setup. Seed default GM so admin can log in
+      const firstTime=[{name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM',assignedTL:'',pin:'0000'}];
+      setUsersCache(firstTime);
+      populateSetupUserList();
+      document.getElementById('login-step').style.display='block';
+      if(btn){btn.textContent='✅ Connected — first time setup';btn.disabled=false;}
+      // Show info in yellow — not red error
+      const info=document.getElementById('pin-info');
+      if(info){info.textContent='First login: use GM / Manager with PIN 0000, then add your team in Settings.';info.style.display='block';}
+    }
+  }catch(e){
+    if(btn){btn.textContent='🔄 Load Team Members';btn.disabled=false;}
+    showSetupError('Could not connect. Check your URL and try again.');
+  }
+}
+
+function populateSetupUserList(){
+  const sel=document.getElementById('setup-user');
+  if(!sel)return;
+  sel.innerHTML='<option value="">-- Select your name --</option>'+getUsers().map(u=>`<option value="${u.name}">${u.name} (${u.role})</option>`).join('');
+}
+
+function checkFirstLogin(){
+  const user=document.getElementById('setup-user').value;
+  if(!user)return;
+  const u=getUsers().find(x=>x.name===user);
+  const info=document.getElementById('pin-info');
+  if(u&&(!u.pin||u.pin==='')){
+    if(info){info.textContent='ℹ️ No PIN set. Contact your admin.';info.style.display='block';}
+  } else {
+    if(info)info.style.display='none';
+  }
+}
+
+function verifyPin(userName,enteredPin){
+  const u=getUsers().find(x=>x.name===userName);
+  if(!u)return false;
+  if(!u.pin||u.pin==='')return true;
+  return String(u.pin)===String(enteredPin);
+}
+
+function connectToSheet(){
+  const url=document.getElementById('api-url-input').value.trim();
+  const user=document.getElementById('setup-user').value;
+  const pin=document.getElementById('setup-pin').value.trim();
+  if(!user){showSetupError('Please select your name');return;}
+  if(!verifyPin(user,pin)){
+    showSetupError('Incorrect PIN. Please try again.');
+    document.getElementById('setup-pin').value='';return;
+  }
+  if(!url){
+    DEMO_MODE=true;
+    localStorage.setItem('peb_demo','1');
+    localStorage.setItem('peb_user',user);
+    startApp(user,true);return;
+  }
+  if(!url.includes('script.google.com')){showSetupError('Please paste a valid Apps Script URL');return;}
+  API_URL=url;
+  localStorage.setItem('peb_api_url',url);
+  localStorage.setItem('peb_user',user);
+  startApp(user,false);
+}
+
+function useDemoMode(){
+  // For demo mode — seed built-in users and skip PIN check
+  const demoUsers=[
+    {name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM',assignedTL:'',pin:'0000'},
+    {name:'Team Lead 1',role:'Team Lead',color:'#1a5eb8',initials:'TL',assignedTL:'',pin:'1111'},
+    {name:'Engineer 1',role:'Design Engineer',color:'#c05621',initials:'E1',assignedTL:'Team Lead 1',pin:'2222'},
+  ];
+  setUsersCache(demoUsers);
+  DEMO_MODE=true;
+  localStorage.setItem('peb_demo','1');
+  localStorage.setItem('peb_user','GM / Manager');
+  seedDemoData();startApp('GM / Manager',true);
+}
+
+function startApp(userName,demo){
+  DEMO_MODE=demo;
+  const users=getUsers();
+  currentUser=users.find(u=>u.name===userName)||users[0];
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('sb-mode').textContent=demo?'Demo Mode':'Live · Google Sheets';
+  buildUserSwitcher();updateSidebarUser();applyTheme(localStorage.getItem('peb_theme')||'yellow-black');
+  if(!demo){fetchAll();syncInterval=setInterval(fetchAll,30000);}
+  else{setSyncing(false);refreshAll();}
+  navigate('dashboard');
+}
+
+// ── Change PIN (for logged-in user) ───────────────────────────
+async function saveChangePin(){
+  const current=document.getElementById('cp-current').value.trim();
+  const newPin=document.getElementById('cp-new').value.trim();
+  const confirm=document.getElementById('cp-confirm').value.trim();
+  const errEl=document.getElementById('cp-error');
+  const hide=()=>{errEl.style.display='none';};
+  const show=(msg)=>{errEl.textContent=msg;errEl.style.display='block';};
+  hide();
+  if(!verifyPin(currentUser.name,current)){show('Current PIN is incorrect.');return;}
+  if(!newPin||newPin.length!==4||isNaN(newPin)){show('New PIN must be exactly 4 digits.');return;}
+  if(newPin!==confirm){show('New PINs do not match.');return;}
+  // Update in users list
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.name===currentUser.name);
+  if(idx===-1){show('User not found.');return;}
+  users[idx].pin=newPin;
+  currentUser.pin=newPin;
+  await saveUsers(users);
+  closeModal('m-changepin');
+  ['cp-current','cp-new','cp-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showToast('✅ PIN changed successfully','#0d7a4a');
+}
+
+const STATUSES=['Received','Assigned to TL','In Progress','On Hold','Under Checking','Sent to Sales','Completed'];
+const STATUS_COLOR={'Received':'#2b6cb0','Assigned to TL':'#6b46c1','In Progress':'#c05621','On Hold':'#c53030','Under Checking':'#2b6cb0','Sent to Sales':'#0d7a4a','Completed':'#0d7a4a'};
+// Legacy status mapping — migrate old 11-status values to new 7
+function normaliseStatus(s){
+  const map={'Assigned to Engineer':'In Progress','In Study':'In Progress','Query Raised':'In Progress','Revision Received':'In Progress'};
+  return map[s]||s;
+}
+
+function uid(){return 'id-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);}
+function today(){return new Date().toISOString().split('T')[0];}
+function daysBetween(a,b){if(!a)return 0;const d1=new Date(a),d2=b?new Date(b):new Date();return Math.max(0,Math.floor((d2-d1)/86400000));}
+function isDelayed(q){return q.deadline&&q.status!=='Completed'&&new Date()>new Date(q.deadline);}
+function totalHrs(qid){return db.logs.filter(l=>l.qid===qid).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);}
+function badge(status){const ns=normaliseStatus(status||'');const cls='s-'+ns.replace(/\s/g,'');return `<span class="badge ${cls}">${ns}</span>`;}
+function tbadge(type){const cls='t-'+type.replace(/\s/g,'');const icons={Study:'📖',Estimation:'📊','STAAD Design':'📐',Checking:'✔️',Revision:'🔄'};return `<span class="badge ${cls}">${icons[type]||''} ${type}</span>`;}
+function delayBadge(q){if(q.status==='Completed')return '';return isDelayed(q)?'<span class="badge s-delayed">🔴 DELAYED</span>':'<span class="badge s-ontrack">🟢 On Track</span>';}
+function roleBadge(role){const m={'Full Access':'role-full','Team Lead':'role-tl','Design Engineer':'role-eng'};return `<span class="role-badge ${m[role]||''}">${role}</span>`;}
+
+// ══════════════════════════════════════════════════════════════
+// GOOGLE SHEETS API
+// ══════════════════════════════════════════════════════════════
+async function apiCall(action,data={}){
+  if(DEMO_MODE)return{success:true};
+  setSyncing(true);
+  try{
+    const res=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,data})});
+    const json=await res.json();
+    setSyncing(false);lastSyncTime=new Date().toLocaleTimeString();
+    updateLastSync();return json;
+  }catch(e){setSyncing(false);setConnStatus(false);return{error:e.toString()};}
+}
+
+async function fetchAll(){
+  if(DEMO_MODE)return;
+  setSyncing(true);
+  try{
+    const res=await fetch(API_URL+'?action=getAll',{redirect:'follow'});
+    const json=await res.json();
+    if(json.quotations!==undefined){
+      db.quotations=json.quotations||[];
+      db.tasks=json.tasks||[];
+      db.logs=json.logs||[];
+      db.activityLogs=json.activityLogs||[];
+    }
+    // Refresh users cache from sheet
+    if(json.users&&Array.isArray(json.users)&&json.users.length>0){
+      setUsersCache(json.users);
+    }
+    setConnStatus(true);setSyncing(false);lastSyncTime=new Date().toLocaleTimeString();
+    updateLastSync();refreshAll();
+  }catch(e){setConnStatus(false);setSyncing(false);}
+}
+
+function setSyncing(v){
+  const dot=document.getElementById('sync-dot'),txt=document.getElementById('sync-text');
+  if(v){dot.className='sync-dot syncing';txt.textContent='Syncing...';}
+  else{dot.className='sync-dot';txt.textContent=DEMO_MODE?'Demo Mode':'Synced';}
+}
+function setConnStatus(ok){
+  document.getElementById('conn-dot').className='conn-dot'+(ok?'':' off');
+  document.getElementById('conn-text').textContent=ok?'Connected':'Connection error';
+  const cfgSt=document.getElementById('cfg-status');
+  if(cfgSt){cfgSt.textContent=ok?'Connected ✅':'Error ❌';cfgSt.style.color=ok?'var(--green)':'var(--red)';}
+}
+function updateLastSync(){const el=document.getElementById('cfg-sync');if(el&&lastSyncTime)el.textContent=lastSyncTime;}
+
+function showSetupError(msg){const el=document.getElementById('setup-error');if(!el)return;el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',4000);}
+
+function disconnect(){
+  if(syncInterval)clearInterval(syncInterval);
+  usersCache=[];
+  localStorage.removeItem('peb_api_url');localStorage.removeItem('peb_demo');localStorage.removeItem('peb_users');
+  location.reload();
+}
+
+function updateApiUrl(){
+  const url=document.getElementById('new-api-url').value.trim();
+  if(!url||!url.includes('script.google.com')){alert('Please enter a valid Apps Script URL');return;}
+  API_URL=url;localStorage.setItem('peb_api_url',url);
+  document.getElementById('cfg-url').textContent=url.substring(0,40)+'...';
+  fetchAll();alert('URL updated and syncing!');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SETTINGS — TEAM MANAGEMENT
+// ══════════════════════════════════════════════════════════════
+let selectedColor=AVATAR_COLORS[0];
+let selectedTLColor=AVATAR_COLORS[1];
+let editSelectedColor=AVATAR_COLORS[0];
+
+function renderSettings(){
+  renderThemeGrid();
+  document.getElementById('cfg-url').textContent=API_URL?API_URL.substring(0,38)+'...':'Demo Mode';
+  document.getElementById('cfg-mode').textContent=DEMO_MODE?'Demo (local only)':'Live (Google Sheets)';
+  if(lastSyncTime)document.getElementById('cfg-sync').textContent=lastSyncTime;
+
+  const users=getUsers();
+  document.getElementById('member-count').textContent=users.length+' members';
+
+  const engineers=users.filter(u=>u.role==='Design Engineer');
+  const tls=users.filter(u=>u.role==='Team Lead');
+  const gms=users.filter(u=>u.role==='Full Access');
+
+  function memberRow(u, showDelete){
+    const avatarStyle='background:'+u.color+';color:'+(isLight(u.color)?'#111':'#fff')+';';
+    const tlText=u.assignedTL?'<span style="font-size:10px;color:var(--text3);margin-left:6px;">→ '+u.assignedTL+'</span>':'';
+    const engList=u.role==='Team Lead'?engineers.filter(e=>e.assignedTL===u.name):[]; 
+    const engText=u.role==='Team Lead'?'<span style="font-size:10px;color:var(--text3);margin-left:6px;">'+engList.length+' engineer'+(engList.length!==1?'s':'')+': '+(engList.map(e=>e.name).join(', ')||'none')+'</span>':'';
+    // Use data-name attribute — avoids ALL quote-escaping issues in onclick
+    const editBtn='<button class="btn btn-ghost btn-xs mem-edit-btn" data-name="'+u.name.replace(/"/g,'&quot;')+'">✏️</button>';
+    const delBtn=showDelete?'<button class="btn btn-danger btn-xs mem-del-btn" data-name="'+u.name.replace(/"/g,'&quot;')+'">✕</button>':'';
+    return '<div class="team-member-row">'
+      +'<div class="tm-avatar" style="'+avatarStyle+'">'+u.initials+'</div>'
+      +'<div class="tm-info"><div class="tm-name">'+u.name+'</div>'
+      +'<div class="tm-role">'+roleBadge(u.role)+tlText+engText+'</div></div>'
+      +'<div class="tm-actions">'+editBtn+delBtn+'</div>'
+      +'</div>';
+  }
+
+  // Render engineers list
+  const engEl=document.getElementById('members-list-eng');
+  if(engEl) engEl.innerHTML=engineers.length===0
+    ?'<div class="empty"><p>No engineers added yet</p></div>'
+    :engineers.map(u=>memberRow(u,true)).join('');
+
+  // Render TL list
+  const tlEl=document.getElementById('members-list-tl');
+  if(tlEl) tlEl.innerHTML=tls.length===0
+    ?'<div class="empty"><p>No team leads added yet</p></div>'
+    :tls.map(u=>memberRow(u,true)).join('');
+
+  // Render GM list (no delete for GM)
+  const gmEl=document.getElementById('members-list-gm');
+  if(gmEl) gmEl.innerHTML=gms.length===0
+    ?'<div class="empty"><p>No GM/Manager added</p></div>'
+    :gms.map(u=>memberRow(u,false)).join('');
+
+  // Populate TL dropdown in add engineer form
+  const tlDrop=document.getElementById('nm-tl-assign');
+  if(tlDrop){tlDrop.innerHTML='<option value="">-- No TL assigned yet --</option>'+tls.map(t=>'<option value="'+t.name+'">'+t.name+'</option>').join('');}
+
+  // Colour pickers
+  renderColorPicker('color-picker','color-preview','add');
+  renderColorPicker('tl-color-picker','tl-color-preview','tl');
+}
+
+function isLight(hex){
+  const c=hex.replace('#','');
+  const r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
+  return (r*299+g*587+b*114)/1000>128;
+}
+
+function renderColorPicker(pickerId,previewId,mode){
+  const el=document.getElementById(pickerId);if(!el)return;
+  const current=mode==='tl'?selectedTLColor:mode==='edit'?editSelectedColor:selectedColor;
+  el.innerHTML=AVATAR_COLORS.map(c=>`<div class="color-swatch ${c===current?'selected':''}" data-color="${c}" data-mode="${mode}" style="background:${c};width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid ${c===current?'#fff':'transparent'};transition:all 0.15s;"></div>`).join('');
+  const prev=document.getElementById(previewId);
+  if(prev){prev.style.background=current;prev.style.color=isLight(current)?'#111':'#fff';}
+}
+
+function swSettingsTab(btn,id){
+  const par=btn.closest('.settings-card-body');
+  par.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  par.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');document.getElementById(id).classList.add('active');
+}
+
+async function addTeamLead(){
+  const name=document.getElementById('tl-name').value.trim();
+  const initials=document.getElementById('tl-initials').value.trim().toUpperCase();
+  const pin=(document.getElementById('tl-pin')||{}).value||'';
+  if(!name){alert('Please enter a name');return;}
+  if(!initials){alert('Please enter initials');return;}
+  if(pin&&(pin.length!==4||isNaN(pin))){alert('PIN must be exactly 4 digits');return;}
+  const users=getUsers();
+  if(users.find(u=>u.name===name)){alert('A member with this name already exists');return;}
+  users.push({name,role:'Team Lead',color:selectedTLColor,initials,assignedTL:'',pin:pin||''});
+  await saveUsers(users);
+  document.getElementById('tl-name').value='';document.getElementById('tl-initials').value='';
+  if(document.getElementById('tl-pin'))document.getElementById('tl-pin').value='';
+  buildUserSwitcher();renderSettings();
+  showToast('✅ Team Lead '+name+' added','#1a5eb8');
+}
+
+function selectColor(color,mode){
+  if(mode==='add'){
+    selectedColor=color;
+    renderColorPicker('color-picker','color-preview','add');
+    const prev=document.getElementById('color-preview');
+    if(prev){const ini=document.getElementById('nm-initials');prev.textContent=ini?ini.value||'?':'?';}
+  } else if(mode==='tl'){
+    selectedTLColor=color;
+    renderColorPicker('tl-color-picker','tl-color-preview','tl');
+  } else if(mode==='edit'){
+    editSelectedColor=color;
+    renderColorPicker('em-color-picker','em-color-preview-box','edit');
+  }
+}
+
+async function addMember(){
+  const name=document.getElementById('nm-name').value.trim();
+  const role='Design Engineer';
+  const initials=document.getElementById('nm-initials').value.trim().toUpperCase();
+  const assignedTL=(document.getElementById('nm-tl-assign')||{}).value||'';
+  const pin=(document.getElementById('nm-pin')||{}).value||'';
+  if(!name){alert('Please enter a name');return;}
+  if(!initials||initials.length<1){alert('Please enter initials');return;}
+  if(pin&&(pin.length!==4||isNaN(pin))){alert('PIN must be exactly 4 digits');return;}
+  const users=getUsers();
+  if(users.find(u=>u.name===name)){alert('A member with this name already exists');return;}
+  users.push({name,role,color:selectedColor,initials,assignedTL,pin:pin||''});
+  await saveUsers(users);
+  document.getElementById('nm-name').value='';
+  document.getElementById('nm-initials').value='';
+  if(document.getElementById('nm-pin'))document.getElementById('nm-pin').value='';
+  buildUserSwitcher();renderSettings();populateSetupUserList();
+  showToast('✅ '+name+' added as Design Engineer'+(assignedTL?' under '+assignedTL:''),'#0d7a4a');
+}
+
+function openEditMember(memberName){
+  const users=getUsers();
+  const idx=users.findIndex(x=>x.name===memberName);
+  if(idx===-1){alert('Member not found. Please refresh the page.');return;}
+  const u=users[idx];
+  document.getElementById('em-idx').value=idx;
+  document.getElementById('em-name').value=u.name;
+  document.getElementById('em-role').value=u.role;
+  document.getElementById('em-initials').value=u.initials;
+  editSelectedColor=u.color;
+  // Populate TL dropdown
+  const tls=users.filter(x=>x.role==='Team Lead');
+  const tlDrop=document.getElementById('em-tl-assign');
+  tlDrop.innerHTML='<option value="">-- No TL --</option>'+tls.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
+  tlDrop.value=u.assignedTL||'';
+  // Show/hide TL row based on role
+  const tlRow=document.getElementById('em-tl-row');
+  if(tlRow)tlRow.style.display=u.role==='Design Engineer'?'flex':'none';
+  // Clear PIN field (leave blank = keep existing)
+  const pinEl=document.getElementById('em-pin');
+  if(pinEl)pinEl.value='';
+  renderColorPicker('em-color-picker','em-color-preview-box','edit');
+  openModal('m-editmember');
+}
+
+function toggleEmTLField(){
+  const role=document.getElementById('em-role').value;
+  const tlRow=document.getElementById('em-tl-row');
+  if(tlRow)tlRow.style.display=role==='Design Engineer'?'flex':'none';
+}
+
+async function saveMemberEdit(){
+  const idx=parseInt(document.getElementById('em-idx').value);
+  const name=document.getElementById('em-name').value.trim();
+  const role=document.getElementById('em-role').value;
+  const initials=document.getElementById('em-initials').value.trim().toUpperCase();
+  if(!name){alert('Name is required');return;}
+  if(!initials){alert('Initials are required');return;}
+  const users=getUsers();
+  if(idx<0||idx>=users.length){alert('Error: Member index out of range. Please close and try again.');return;}
+  const oldName=users[idx].name;
+  // Check duplicate name (only if name changed)
+  if(name!==oldName&&users.find(u=>u.name===name)){alert('A member with this name already exists.');return;}
+  const existing=users[idx];
+  const newAssignedTL=document.getElementById('em-role').value==='Design Engineer'?(document.getElementById('em-tl-assign').value||''):(existing.assignedTL||'');
+  const newPinRaw=(document.getElementById('em-pin')||{}).value||'';
+  if(newPinRaw&&(newPinRaw.length!==4||isNaN(newPinRaw))){alert('PIN must be exactly 4 digits, or leave blank to keep existing');return;}
+  const newPin=newPinRaw?newPinRaw:(existing.pin||'');
+  users[idx]={name,role,color:editSelectedColor,initials,assignedTL:newAssignedTL,pin:newPin};
+  await saveUsers(users);
+  if(currentUser.name===oldName){currentUser=users[idx];updateSidebarUser();}
+  closeModal('m-editmember');
+  buildUserSwitcher();renderSettings();
+  showToast('✅ '+name+' updated','#1a5eb8');
+}
+
+async function deleteMember(memberName){
+  const users=getUsers();
+  const idx=users.findIndex(x=>x.name===memberName);
+  if(idx===-1){alert('Member not found: '+memberName);return;}
+  const u=users[idx];
+  if(u.name===currentUser.name){alert('Cannot delete your own account while logged in.');return;}
+  if(!confirm('Remove "'+u.name+'" from the team?'))return;
+  users.splice(idx,1);
+  await saveUsers(users);
+  buildUserSwitcher();
+  renderSettings();
+  showToast('✅ '+memberName+' removed','#0d7a4a');
+}
+
+// Event delegation for member list buttons (avoids onclick escaping bugs)
+document.addEventListener('click',function(e){
+  // Member delete/edit
+  const delBtn=e.target.closest('.mem-del-btn');
+  if(delBtn){const name=delBtn.getAttribute('data-name');if(name)deleteMember(name);return;}
+  const editBtn=e.target.closest('.mem-edit-btn');
+  if(editBtn){const name=editBtn.getAttribute('data-name');if(name)openEditMember(name);return;}
+  // Theme cards
+  const themeCard=e.target.closest('[data-theme]');
+  if(themeCard){const tid=themeCard.getAttribute('data-theme');if(tid)applyTheme(tid);return;}
+  // User switcher chips
+  const userChip=e.target.closest('.user-chip[data-user]');
+  if(userChip){const u=userChip.getAttribute('data-user');if(u)switchUser(u);return;}
+  // Colour swatches
+  const swatch=e.target.closest('.color-swatch[data-color]');
+  if(swatch){selectColor(swatch.getAttribute('data-color'),swatch.getAttribute('data-mode'));return;}
+  // Pipeline stages
+  const pipeStage=e.target.closest('[data-filter-status]');
+  if(pipeStage){qStatFilter=pipeStage.getAttribute('data-filter-status');navigate('quotations');return;}
+  // Quotation status filter chips
+  const qstatChip=e.target.closest('[data-qstat]');
+  if(qstatChip){qStatFilter=qstatChip.getAttribute('data-qstat');renderQ();return;}
+  // Task type filter chips
+  const tfilterChip=e.target.closest('[data-tfilter]');
+  if(tfilterChip){tFilter=tfilterChip.getAttribute('data-tfilter');renderTasks();return;}
+  // Quotation table rows
+  const qRow=e.target.closest('tr[data-qid]');
+  if(qRow&&!e.target.closest('button')&&!e.target.closest('[data-statusbtn]')){const qid=qRow.getAttribute('data-qid');if(qid)showDetail(qid);return;}
+  // Status button in quotation row
+  const statusBtn=e.target.closest('[data-statusbtn]');
+  if(statusBtn){const qid=statusBtn.getAttribute('data-statusbtn');if(qid)openStatusUpdate(qid);return;}
+  // Delete quotation button
+  const deleteBtn=e.target.closest('[data-delete-qid]');
+  if(deleteBtn){const qid=deleteBtn.getAttribute('data-delete-qid');if(qid)deleteQ(qid);return;}
+  // Daily log filter chips
+  const dlChip=e.target.closest('[data-dlfilter]');
+  if(dlChip){dlLogFilter=dlChip.getAttribute('data-dlfilter');renderDailyLog();return;}
+});
+
+function showToast(msg,color){
+  color=color||'#1a5eb8';
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;top:20px;right:20px;background:'+color+';color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);transition:opacity 0.4s;';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);},2200);
+}
+
+// ══════════════════════════════════════════════════════════════
+// USER SWITCHER
+// ══════════════════════════════════════════════════════════════
+function renderTopbarActions(){
+  const el = document.getElementById('topbar-actions');
+  if(!el) return;
+  const isGM   = currentUser.role === 'Full Access';
+  const isTL   = currentUser.role === 'Team Lead';
+  const isEng  = currentUser.role === 'Design Engineer';
+  let html = '';
+  // All roles: Log Time
+  html += `<button class="btn btn-ghost btn-sm" onclick="openModal('m-timelog')">⏱ Log Time</button>`;
+  // GM + TL: Log Activity & New Quotation
+  if(isGM || isTL){
+    html += `<button class="btn btn-ghost btn-sm" onclick="openModal('m-dailylog')">📝 Log Activity</button>`;
+    html += `<button class="btn btn-primary btn-sm" onclick="openModal('m-quotation')">+ Quotation</button>`;
+  }
+  // Settings button — all roles (engineers can change their PIN etc.)
+  html += `<button class="btn btn-ghost btn-sm" onclick="navigate('settings')" title="Settings" style="font-size:16px;padding:6px 10px;">⚙️</button>`;
+  el.innerHTML = html;
+  // Show/hide Tasks nav based on role
+  const tasksNav = document.getElementById('nav-tasks');
+  if(tasksNav) tasksNav.style.display = isEng ? 'none' : 'flex';
+}
+
+function buildUserSwitcher(){
+  // Role-based chip visibility:
+  // Design Engineers → no chips (they only see their own data)
+  // Team Leads → only their own chip (cannot switch to other TLs)
+  // GM / Full Access → all TL chips
+  let chips = [];
+  if(currentUser.role === 'Full Access'){
+    chips = getUsers().filter(u => u.role==='Team Lead' || u.role==='Full Access');
+  } else if(currentUser.role === 'Team Lead'){
+    chips = getUsers().filter(u => u.name === currentUser.name);
+  }
+  // Design Engineers get empty switcher
+  document.getElementById('user-switcher').innerHTML = chips.map(u=>`
+    <div class="user-chip ${u.name===currentUser.name?'active':''}" title="${u.name} — ${u.role}" data-user="${u.name.replace(/"/g,'&quot;')}">
+      <span class="uc-dot" style="background:${u.color};"></span>${u.initials}
+    </div>`).join('');
+  populateSetupUserList();
+  renderTopbarActions();
+}
+
+function switchUser(name){
+  const users=getUsers();
+  currentUser=users.find(u=>u.name===name)||users[0];
+  localStorage.setItem('peb_user',currentUser.name);
+  buildUserSwitcher();updateSidebarUser();applyTheme(localStorage.getItem('peb_theme')||'yellow-black');refreshAll();
+}
+
+function updateSidebarUser(){
+  document.getElementById('sb-avatar').textContent=currentUser.initials;
+  document.getElementById('sb-avatar').style.background=currentUser.color;
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-role').textContent=currentUser.role;
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function navigate(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+page+"'"))n.classList.add('active');});
+  renderPage(page);
+}
+function renderPage(page){
+  switch(page){
+    case 'dashboard': renderDash();break;
+    case 'quotations':renderQ();break;
+    case 'kanban':    renderKanban();break;
+    case 'onhold':    renderOnHold();break;
+    case 'delayed':   renderDelayed();break;
+    case 'tasks':     renderTasks();break;
+    case 'timelog':   renderTimelog();break;
+    case 'workload':  renderWorkload();break;
+    case 'reports':   renderReports();break;
+    case 'settings':  renderSettings();break;
+    case 'teamview':  renderTeamView();break;
+  }
+  updateBadges();
+}
+function updateBadges(){
+  document.getElementById('nb-active').textContent=db.quotations.filter(q=>normaliseStatus(q.status)!=='Completed').length;
+  document.getElementById('nb-hold').textContent=db.quotations.filter(q=>q.hold).length;
+  const delEl=document.getElementById('nb-delay');if(delEl)delEl.textContent=db.quotations.filter(q=>isDelayed(q)).length;
+  // TL notification — pending engineer assignment
+  const assignBadge=document.getElementById('nb-assign');
+  if(assignBadge){
+    const isTLorGM=currentUser.role==='Team Lead'||currentUser.role==='Full Access';
+    // pending = Assigned to TL status (not yet assigned to engineer) and belongs to this TL
+    const pendingAssign=db.quotations.filter(q=>{
+      const ns=normaliseStatus(q.status);
+      return (ns==='Assigned to TL'||q.status==='Assigned to TL')&&q.tl===currentUser.name&&!q.eng;
+    }).length;
+    if(isTLorGM&&pendingAssign>0){
+      assignBadge.textContent=pendingAssign+' to assign';
+      assignBadge.style.display='inline';
+    } else {
+      assignBadge.style.display='none';
+    }
+  }
+}
+function refreshAll(){
+  const active=document.querySelector('.page.active');
+  if(active)renderPage(active.id.replace('page-',''));
+  updateBadges();
+}
+
+function myQ(){return db.quotations.filter(q=>currentUser.role==='Full Access'||q.eng===currentUser.name||q.tl===currentUser.name);}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER PAGES
+// ══════════════════════════════════════════════════════════════
+function renderDash(){
+  const lc=(hex)=>{if(!hex||hex.length<4)return true;const c=hex.replace('#','');return(parseInt(c.substr(0,2),16)*299+parseInt(c.substr(2,2),16)*587+parseInt(c.substr(4,2),16)*114)/1000>128;};
+  const PCOL={'Received':'#2b6cb0','Assigned to TL':'#6b46c1','Assigned to Engineer':'#2c5282','In Study':'#553c9a','Query Raised':'#b7791f','On Hold':'#c53030','In Progress':'#c05621','Under Checking':'#2b6cb0','Sent to Sales':'#0d7a4a','Revision Received':'#c05621','Completed':'#0d7a4a'};
+
+  // ── GREETING ─────────────────────────────────────────────
+  const hour=new Date().getHours();
+  const greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  const dateStr=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+  const greetEl=document.getElementById('dash-greeting');
+  if(greetEl)greetEl.textContent=greet+', '+currentUser.name+' · '+dateStr;
+  const titleEl=document.getElementById('dash-title');
+  if(titleEl)titleEl.textContent='Dashboard';
+
+  // ── ROLE CONTEXT BANNER ──────────────────────────────────
+  const bannerEl=document.getElementById('dash-role-banner');
+  if(bannerEl){
+    const roleColor={'Full Access':'#0d7a4a','Team Lead':'#1a5eb8','Design Engineer':'#6b46c1'};
+    const roleDesc={'Full Access':'You have full visibility of all engineers, quotations, and team activity.',
+      'Team Lead':'Showing your team\'s quotations and engineer assignments.',
+      'Design Engineer':'Showing your assigned quotations and logged hours.'};
+    bannerEl.innerHTML=`<div style="background:var(--surface2);border:1px solid var(--border);border-left:4px solid ${roleColor[currentUser.role]||'var(--accent)'};border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:${currentUser.color};color:${lc(currentUser.color)?'#111':'#fff'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">${currentUser.initials}</div>
+      <div><div style="font-size:13px;font-weight:700;color:var(--navy);">${currentUser.name} <span style="font-size:11px;font-weight:400;color:var(--text3);font-family:var(--mono);">${currentUser.role}</span></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:1px;">${roleDesc[currentUser.role]||''}</div></div>
+      <div style="margin-left:auto;display:flex;gap:16px;text-align:center;">
+        <div><div style="font-size:20px;font-weight:800;color:${roleColor[currentUser.role]};">${myQ().filter(q=>q.status!=='Completed').length}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">Active</div></div>
+        <div><div style="font-size:20px;font-weight:800;color:#c53030;">${myQ().filter(q=>isDelayed(q)).length}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">Delayed</div></div>
+        <div><div style="font-size:20px;font-weight:800;color:#b7791f;">${myQ().filter(q=>q.hold).length}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">On Hold</div></div>
+        <div><div style="font-size:20px;font-weight:800;color:var(--blue2);">${db.logs.filter(l=>currentUser.role==='Full Access'||l.eng===currentUser.name).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0).toFixed(1)}h</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">Hours</div></div>
+      </div>
+    </div>`;
+  }
+
+  // ── SECTION 1: WHO IS WORKING ON WHAT ───────────────────
+  const engGridEl=document.getElementById('dash-eng-grid');
+  const summaryEl=document.getElementById('dash-eng-summary');
+  if(engGridEl){
+    // Determine which engineers to show based on role
+    let engineers=getUsers().filter(u=>u.role==='Design Engineer');
+    if(currentUser.role==='Team Lead')
+      engineers=engineers.filter(e=>e.assignedTL===currentUser.name);
+    else if(currentUser.role==='Design Engineer')
+      engineers=engineers.filter(e=>e.name===currentUser.name);
+
+    if(summaryEl)summaryEl.textContent=engineers.length+' engineer'+(engineers.length!==1?'s':'');
+
+    engGridEl.innerHTML=engineers.length===0
+      ?'<div style="color:var(--text3);padding:16px;font-size:13px;">No engineers to show. Add engineers in Settings.</div>'
+      :engineers.map(eng=>{
+        const engQ=db.quotations.filter(q=>q.eng===eng.name&&q.status!=='Completed').sort((a,b)=>new Date(a.deadline||'9999')-new Date(b.deadline||'9999'));
+        const engHrs=db.logs.filter(l=>l.eng===eng.name).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+        const lateCount=engQ.filter(q=>isDelayed(q)).length;
+        const holdCount=engQ.filter(q=>q.hold).length;
+        const borderColor=lateCount>0?'#c53030':holdCount>0?'#b7791f':'var(--border)';
+        return `<div style="background:var(--surface);border:1px solid ${borderColor};border-radius:var(--radius2);overflow:hidden;box-shadow:var(--shadow);">
+          <!-- Engineer header -->
+          <div style="padding:11px 14px;background:${eng.color};display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${eng.initials}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#fff;">${eng.name}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.65);font-family:var(--mono);">${eng.assignedTL||'No TL'} · ${engQ.length} active · ${engHrs.toFixed(1)}h</div>
+            </div>
+            ${lateCount>0?`<span style="background:rgba(255,255,255,0.2);color:#fff;font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:10px;">🔴 ${lateCount} late</span>`:''}
+          </div>
+          <!-- Project list -->
+          <div style="padding:8px 12px;">
+            ${engQ.length===0
+              ?'<div style="color:var(--text3);font-size:12px;padding:8px 0;font-style:italic;">No active projects</div>'
+              :engQ.slice(0,4).map(q=>`
+                <div onclick="showDetail('${q.id}')" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--blue2);font-weight:700;min-width:90px;">${q.qid}</span>
+                  <span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--navy);">${q.name}</span>
+                  ${badge(q.status)}
+                  ${isDelayed(q)?'<span style="color:var(--red);font-size:11px;">⚠️</span>':q.hold?'<span style="color:var(--orange);font-size:11px;">⏸</span>':''}
+                </div>`).join('')}
+            ${engQ.length>4?`<div onclick="navigate('quotations')" style="font-size:11px;color:var(--blue2);padding:6px 0;cursor:pointer;font-family:var(--mono);">+${engQ.length-4} more →</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  // ── SECTION 2A: PIPELINE ─────────────────────────────────
+  const pipeEl=document.getElementById('dash-pipeline');
+  if(pipeEl){
+    // Count using normalised status so legacy data maps correctly
+    const pipeCounts={};STATUSES.forEach(s=>pipeCounts[s]=0);
+    db.quotations.forEach(q=>{const ns=normaliseStatus(q.status);if(pipeCounts[ns]!==undefined)pipeCounts[ns]++;});
+    pipeEl.innerHTML=STATUSES.map(s=>{
+      const cnt=pipeCounts[s]||0;
+      const hasItems=cnt>0;
+      return `<div class="pipe-stage ${hasItems?'has-items':''}" data-filter-status="${s}" style="cursor:pointer;">
+        <div class="pipe-stage-dot" style="background:${hasItems?PCOL[s]:'#ddd'};"></div>
+        <div class="pipe-stage-count" style="color:${hasItems?PCOL[s]:'#bbb'};">${cnt}</div>
+        <div class="pipe-stage-label">${s}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── SECTION 2B: ALERTS ───────────────────────────────────
+  const alertsEl=document.getElementById('dash-alerts');
+  if(alertsEl){
+    const myDelayed=myQ().filter(q=>isDelayed(q));
+    const myHold=myQ().filter(q=>q.hold);
+    const myQuery=myQ().filter(q=>q.status==='Query Raised');
+    const myCheck=myQ().filter(q=>q.status==='Under Checking');
+    const myPendingAssign=(currentUser.role==='Team Lead'||currentUser.role==='Full Access')?db.quotations.filter(q=>q.status==='Assigned to TL'&&q.tl===currentUser.name):[];
+    const cards=[];
+    if(myPendingAssign.length>0) cards.push({icon:'👷',count:myPendingAssign.length,label:'Pending Assignment',color:'#553c9a',bg:'#f5f3ff',border:'#c4b5fd',fn:"setQFilter('Assigned to TL');navigate('quotations');"});
+    if(myDelayed.length>0) cards.push({icon:'🔴',count:myDelayed.length,label:'Delayed',color:'#c53030',bg:'#fff5f5',border:'#fed7d7',fn:"setQFilter('delayed');navigate('quotations');"});
+    if(myHold.length>0)    cards.push({icon:'⏸',count:myHold.length,label:'On Hold',color:'#b7791f',bg:'#fff8f0',border:'#fbd38d',fn:"navigate('onhold')"});
+    if(myQuery.length>0)   cards.push({icon:'❓',count:myQuery.length,label:'Query Raised',color:'#b7791f',bg:'#fffff0',border:'#faf089',fn:"setQFilter('Query Raised');navigate('quotations');"});
+    if(myCheck.length>0)   cards.push({icon:'🔍',count:myCheck.length,label:'Checking',color:'#2b6cb0',bg:'#ebf8ff',border:'#bee3f8',fn:"setQFilter('Under Checking');navigate('quotations');"});
+    alertsEl.innerHTML=cards.length===0
+      ?'<div style="padding:20px;text-align:center;"><div style="font-size:22px;">✅</div><div style="font-size:12px;color:var(--green);font-weight:600;margin-top:6px;">All clear!</div></div>'
+      :cards.map(c=>`<div onclick="${c.fn}" style="background:${c.bg};border:1px solid ${c.border};border-radius:var(--radius);padding:9px 12px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">${c.icon}</span>
+        <div><div style="font-size:18px;font-weight:800;color:${c.color};line-height:1;">${c.count}</div><div style="font-size:10px;color:${c.color};font-family:var(--mono);">${c.label}</div></div>
+      </div>`).join('');
+  }
+
+  // ── SECTION 3: ACTIVE QUOTATIONS TABLE ──────────────────
+  const active=myQ().filter(q=>q.status!=='Completed').sort((a,b)=>new Date(a.deadline||'9999')-new Date(b.deadline||'9999'));
+  const countEl=document.getElementById('dash-active-count');
+  if(countEl)countEl.textContent=active.length+' project'+(active.length!==1?'s':'');
+  const tbody=document.getElementById('dash-active-tbody');
+  if(tbody){
+    tbody.innerHTML=active.length===0
+      ?'<tr><td colspan="9"><div class="empty"><p>No active quotations</p></div></td></tr>'
+      :active.map(q=>{
+        const del=isDelayed(q);
+        const hrs=totalHrs(q.id);
+        return `<tr onclick="showDetail('${q.id}')" style="${del?'background:#fff5f5;':''}${q.hold?'background:#fffbf0;':''}">
+          <td class="td-mono" style="color:var(--blue2);font-weight:700;">${q.qid}</td>
+          <td style="font-weight:600;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.name}</td>
+          <td style="font-size:12px;color:var(--text2);">${q.client||'—'}</td>
+          <td style="font-size:12px;font-weight:600;">${q.eng||'—'}</td>
+          <td style="font-size:11px;color:var(--text3);">${q.tl||'—'}</td>
+          <td>${badge(q.status)}${q.hold?' <span style="font-size:10px;">⏸</span>':''}</td>
+          <td class="td-mono" style="font-size:12px;">${daysBetween(q.dateRcvd)}d</td>
+          <td class="td-mono" style="color:var(--blue2);font-size:12px;">${hrs.toFixed(1)}h</td>
+          <td class="td-mono" style="font-size:12px;${del?'color:var(--red);font-weight:700;':''}">${q.deadline||'—'}${del?' ⚠️':''}</td>
+        </tr>`;
+      }).join('');
+  }
+
+  // ── SECTION 4: HOURS BY WORK TYPE (pill chips) ──────────
+  const types=['Study','Estimation','STAAD Design','Checking','Revision'];
+  const tCol={Study:'#553c9a',Estimation:'#0d7a4a','STAAD Design':'#1a5eb8',Checking:'#b7791f',Revision:'#c05621'};
+  const tBg ={Study:'#f5f3ff',Estimation:'#f0fff4','STAAD Design':'#ebf8ff',Checking:'#fffbeb',Revision:'#fff5f0'};
+  const typeEl=document.getElementById('d-typehrs');
+  if(typeEl){
+    const logSrc=currentUser.role==='Design Engineer'?db.logs.filter(l=>l.eng===currentUser.name):db.logs;
+    typeEl.innerHTML=types.map(t=>{
+      const h=logSrc.filter(l=>l.type===t).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+      return `<div style="background:${tBg[t]};border:1px solid ${tCol[t]}33;border-radius:20px;padding:7px 14px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:12px;color:${tCol[t]};font-weight:600;">${t}</div>
+        <div style="font-size:16px;font-weight:800;color:${tCol[t]};">${h.toFixed(1)}<span style="font-size:10px;font-weight:400;">h</span></div>
+      </div>`;
+    }).join('');
+  }
+}
+
+let qStatFilter='';
+function renderQ(){
+  const search=(document.getElementById('q-search')||{}).value?.toLowerCase()||'';
+  const allStatuses=['','Received','Assigned to TL','In Progress','On Hold','Under Checking','Sent to Sales','Completed'];
+  const fEl=document.getElementById('q-filters');
+  if(fEl)fEl.innerHTML=allStatuses.map(s=>`<div class="chip ${qStatFilter===s?'active':''}" data-qstat="${s}">${s||'All'}</div>`).join('');
+  const list=myQ().filter(q=>{
+    const ns=normaliseStatus(q.status);
+    const matchSearch=!search||q.qid?.toLowerCase().includes(search)||q.name?.toLowerCase().includes(search)||(q.client||'').toLowerCase().includes(search);
+    const matchFilter=!qStatFilter||(qStatFilter==='delayed'?isDelayed(q):ns===qStatFilter);
+    return matchSearch&&matchFilter;
+  });
+  const cols=visibleCols('quotations');
+  const thead=document.getElementById('q-thead');
+  if(thead)thead.innerHTML='<tr>'+cols.map(c=>`<th>${c.label}</th>`).join('')+'</tr>';
+  const colCount=cols.length||9;
+  document.getElementById('q-tbody').innerHTML=list.map(q=>`<tr data-qid="${q.id}" style="${isDelayed(q)?'background:#fff5f5;':''}${q.hold?'background:#fffbf0;':''}">
+    ${cols.map(c=>{
+      if(c.key==='qid')   return `<td class="td-mono" style="color:var(--blue2);font-weight:700;">${q.qid}</td>`;
+      if(c.key==='name')  return `<td><div style="font-weight:600;">${q.name}</div><div style="font-size:11px;color:var(--text3);">${q.client&&q.client!=='—'?q.client+' · ':''}<span style="color:${q.ptype==='Job'?'#1a5eb8':'#b7791f'};font-weight:600;">${q.ptype==='Job'?'Job Stage':'Quote Stage'}</span></div></td>`;
+      if(c.key==='eng')   return `<td><div style="font-size:12px;font-weight:600;">${q.eng||'<em style="color:var(--text3);">Unassigned</em>'}</div><div style="font-size:11px;color:var(--text3);">${q.tl||''}</div></td>`;
+      if(c.key==='status')return `<td>${badge(normaliseStatus(q.status))}${q.hold?' <span title="On Hold" style="color:var(--orange);">⏸</span>':''}</td>`;
+      if(c.key==='days')  return `<td class="td-mono">${daysBetween(q.dateRcvd)}d</td>`;
+      if(c.key==='hours') return `<td class="td-mono" style="color:var(--blue2);font-weight:600;">${totalHrs(q.id).toFixed(1)}h</td>`;
+      if(c.key==='delay') return `<td>${delayBadge(q)}</td>`;
+      if(c.key==='rev')   return `<td class="td-mono" style="color:${q.revCount>0?'var(--orange)':'var(--text3)'};">${q.revCount}</td>`;
+      if(c.key==='actions')return `<td onclick="event.stopPropagation()"><button class="btn btn-ghost btn-xs" data-statusbtn="${q.id}">Status ▾</button></td>`;
+      return `<td>${q[c.key]||'—'}</td>`;
+    }).join('')}
+  </tr>`).join('')||`<tr><td colspan="${colCount}"><div class="empty"><p>No quotations found</p></div></td></tr>`;
+}
+function setQFilter(s){qStatFilter=s;renderQ();}
+
+function renderKanban(){
+  // Use normalised 7 statuses — map any legacy values
+  const stCounts={};
+  STATUSES.forEach(s=>stCounts[s]=0);
+  const cards7={};STATUSES.forEach(s=>cards7[s]=[]);
+  myQ().forEach(q=>{
+    const s=normaliseStatus(q.status);
+    if(cards7[s]) cards7[s].push(q);
+  });
+  document.getElementById('kanban-board').innerHTML=STATUSES.map(s=>{
+    const cards=cards7[s]||[];
+    const col=STATUS_COLOR[s]||'#888';
+    return `<div class="kanban-col">
+      <div class="kanban-col-header" style="color:${col};border-bottom:2px solid ${col}22;">
+        ${s}<span class="kanban-count" style="background:${col}22;color:${col};">${cards.length}</span>
+      </div>
+      <div class="kanban-cards">${cards.length===0
+        ?'<div style="color:var(--text3);font-size:11px;text-align:center;padding:8px;">—</div>'
+        :cards.map(q=>{
+          const hrs=totalHrs(q.id);
+          const del=isDelayed(q);
+          return `<div class="kcard" onclick="showDetail('${q.id}')" style="border-left-color:${col};">
+            <div class="kc-id">${q.qid}${q.revCount>0?` <span style="background:${col}22;color:${col};font-size:9px;padding:1px 5px;border-radius:8px;">Rev×${q.revCount}</span>`:''}</div>
+            <div class="kc-name">${q.name}</div>
+            <div class="kc-client" style="color:var(--text3);">${q.client||''}</div>
+            <div class="kc-meta">
+              <span style="font-size:10px;font-family:var(--mono);color:var(--text2);">${q.eng||'—'}</span>
+              <span style="font-size:10px;font-family:var(--mono);color:var(--blue2);">${hrs.toFixed(1)}h</span>
+              ${del?'<span style="color:var(--red);font-size:10px;">⚠️</span>':q.hold?'<span style="color:var(--orange);font-size:10px;">⏸</span>':''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderOnHold(){
+  document.getElementById('hold-tbody').innerHTML=db.quotations.filter(q=>q.hold).map(q=>`<tr onclick="showDetail('${q.id}')">
+    <td class="td-mono" style="color:var(--blue2);font-weight:600;">${q.qid}</td><td>${q.name}</td><td>${q.eng||'—'}</td>
+    <td style="color:var(--yellow);font-size:12px;">${q.holdReason||'—'}</td>
+    <td class="td-mono">${q.holdStart||'—'}</td><td class="td-mono" style="color:var(--red);font-weight:700;">${daysBetween(q.holdStart)}d</td>
+    <td onclick="event.stopPropagation()"><button class="btn btn-success btn-xs" onclick="resumeQ('${q.id}')">▶ Resume</button></td>
+  </tr>`).join('')||`<tr><td colspan="7"><div class="empty"><p>No projects on hold</p></div></td></tr>`;
+}
+
+function renderDelayed(){
+  document.getElementById('delay-tbody').innerHTML=db.quotations.filter(q=>isDelayed(q)).map(q=>`<tr onclick="showDetail('${q.id}')">
+    <td class="td-mono" style="color:var(--blue2);font-weight:600;">${q.qid}</td><td>${q.name}</td><td>${q.eng||'—'}</td>
+    <td>${badge(q.status)}</td><td class="td-mono">${q.deadline||'—'}</td>
+    <td class="td-mono" style="color:var(--red);font-weight:700;">+${daysBetween(q.deadline)}d</td>
+  </tr>`).join('')||`<tr><td colspan="6"><div class="empty"><p>No delayed projects 🎉</p></div></td></tr>`;
+}
+
+let tFilter='';
+function renderTasks(){
+  const fEl=document.getElementById('t-filters');
+  if(fEl)fEl.innerHTML=['','Study','Estimation','STAAD Design','Checking','Revision'].map(t=>`<div class="chip ${tFilter===t?'active':''}" data-tfilter="${t}">${t||'All'}</div>`).join('');
+  const qmap={};db.quotations.forEach(q=>qmap[q.id]=q.qid);
+  const list=db.tasks.filter(t=>(!tFilter||t.type===tFilter)&&(currentUser.role==='Full Access'||t.eng===currentUser.name));
+  const cols=visibleCols('tasks');
+  const thead=document.getElementById('t-thead');
+  if(thead)thead.innerHTML='<tr>'+cols.map(c=>`<th>${c.label}</th>`).join('')+'</tr>';
+  const colCount=cols.length||7;
+  document.getElementById('t-tbody').innerHTML=list.map(t=>`<tr>
+    ${cols.map(c=>{
+      const ah=db.logs.filter(l=>l.tid===t.id).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+      if(c.key==='name')     return `<td style="font-weight:600;">${t.name}</td>`;
+      if(c.key==='qid')      return `<td class="td-mono" style="color:var(--blue2);">${qmap[t.qid]||t.qid}</td>`;
+      if(c.key==='type')     return `<td>${tbadge(t.type)}</td>`;
+      if(c.key==='eng')      return `<td>${t.eng}</td>`;
+      if(c.key==='status')   return `<td style="font-size:12px;font-family:var(--mono);">${t.status}</td>`;
+      if(c.key==='estHrs')   return `<td class="td-mono">${t.estHrs||'—'}h</td>`;
+      if(c.key==='loggedHrs')return `<td class="td-mono" style="color:var(--blue2);font-weight:600;">${ah.toFixed(1)}h</td>`;
+      return `<td>${t[c.key]||'—'}</td>`;
+    }).join('')}
+  </tr>`).join('')||`<tr><td colspan="${colCount}"><div class="empty"><p>No tasks</p></div></td></tr>`;
+}
+function setTFilter(t){tFilter=t;renderTasks();}
+
+function renderTimelog(){
+  const todayStr=today();
+  const users=getUsers();
+
+  // ── Role-based log source ──
+  let logSrc=[...db.logs];
+  if(currentUser.role==='Design Engineer') logSrc=logSrc.filter(l=>l.eng===currentUser.name);
+  else if(currentUser.role==='Team Lead'){
+    const myTeam=users.filter(u=>u.assignedTL===currentUser.name||u.name===currentUser.name).map(u=>u.name);
+    logSrc=logSrc.filter(l=>myTeam.includes(l.eng));
+  }
+
+  // ── Stats ──
+  const totalH=logSrc.reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+  const todayH=logSrc.filter(l=>l.date===todayStr).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+  const byType={};logSrc.forEach(l=>{byType[l.type]=(byType[l.type]||0)+(parseFloat(l.hrs)||0);});
+  const tlStats=document.getElementById('tl-stats');
+  if(tlStats) tlStats.innerHTML=`
+    <div class="stat-card blue"><div class="stat-label">Total Hours (All Time)</div><div class="stat-value" style="color:var(--blue2);">${totalH.toFixed(1)}</div></div>
+    <div class="stat-card green"><div class="stat-label">Today's Hours</div><div class="stat-value" style="color:var(--green);">${todayH.toFixed(1)}</div></div>
+    <div class="stat-card blue"><div class="stat-label">STAAD Hrs</div><div class="stat-value" style="color:var(--blue2);">${(byType['STAAD Design']||0).toFixed(1)}</div></div>
+    <div class="stat-card yellow"><div class="stat-label">Estimation Hrs</div><div class="stat-value" style="color:var(--yellow);">${(byType['Estimation']||0).toFixed(1)}</div></div>`;
+
+  const qmap={};db.quotations.forEach(q=>qmap[q.id]=q);
+  const typeColors={Study:'#553c9a',Estimation:'#0d7a4a','STAAD Design':'#1a5eb8',Checking:'#b7791f','Other Work':'#c05621'};
+
+  // ══ TAB 1: TODAY'S WORK ══════════════════════════════════
+  const todayEl=document.getElementById('tl-today-content');
+  if(todayEl){
+    let engineers=users.filter(u=>u.role==='Design Engineer'||u.role==='Team Lead');
+    if(currentUser.role==='Team Lead') engineers=engineers.filter(e=>e.assignedTL===currentUser.name||e.name===currentUser.name);
+    else if(currentUser.role==='Design Engineer') engineers=[currentUser];
+
+    const cards=engineers.map(eng=>{
+      const engLogs=logSrc.filter(l=>l.eng===eng.name&&l.date===todayStr);
+      const engHrs=engLogs.reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);">
+        <div style="padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:${eng.color||'#888'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${eng.initials||'?'}</div>
+          <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${eng.name}</div><div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${eng.role}</div></div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:${engHrs>0?'var(--green)':'var(--text3)'};">${engHrs.toFixed(1)}h</div>
+        </div>
+        ${engLogs.length===0
+          ?'<div style="padding:18px;color:var(--text3);font-size:13px;text-align:center;font-style:italic;">No work logged today</div>'
+          :`<table style="width:100%;border-collapse:collapse;">
+            <thead><tr>
+              <th style="padding:8px 14px;text-align:left;font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Quotation</th>
+              <th style="padding:8px 14px;text-align:left;font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Work Type</th>
+              <th style="padding:8px 14px;text-align:left;font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Hours</th>
+              <th style="padding:8px 14px;text-align:left;font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Remarks</th>
+            </tr></thead>
+            <tbody>${engLogs.map(l=>`<tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:9px 14px;font-family:var(--mono);font-size:11px;color:var(--blue2);font-weight:700;">${qmap[l.qid]?qmap[l.qid].qid:l.qid||'—'}</td>
+              <td style="padding:9px 14px;"><span style="color:${typeColors[l.type]||'var(--text)'};font-size:12px;font-weight:600;">${l.type||'—'}</span></td>
+              <td style="padding:9px 14px;font-family:var(--mono);font-weight:700;color:var(--green);">${parseFloat(l.hrs).toFixed(1)}h</td>
+              <td style="padding:9px 14px;font-size:12px;color:var(--text2);max-width:250px;">${l.desc||'—'}</td>
+            </tr>`).join('')}</tbody>
+          </table>`}
+      </div>`;
+    }).join('');
+    todayEl.innerHTML=cards||'<div class="empty"><p>No engineers found</p></div>';
+  }
+
+  // ══ TAB 2: BY QUOTATION ══════════════════════════════════
+  const byQuotEl=document.getElementById('tl-byquot-content');
+  if(byQuotEl){
+    const qScope=currentUser.role==='Full Access'?db.quotations:myQ();
+    const quotCards=qScope.map(q=>{
+      const qLogs=logSrc.filter(l=>l.qid===q.id);
+      const totalQH=qLogs.reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+      const byEng={};const byT={};
+      qLogs.forEach(l=>{
+        byEng[l.eng]=(byEng[l.eng]||0)+(parseFloat(l.hrs)||0);
+        byT[l.type]=(byT[l.type]||0)+(parseFloat(l.hrs)||0);
+      });
+      const normSt=normaliseStatus(q.status);
+      const stCol=STATUS_COLOR[normSt]||'#888';
+      const engRows=Object.entries(byEng).sort((a,b)=>b[1]-a[1]).map(([eng,hrs])=>{
+        const u=users.find(x=>x.name===eng);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <div style="width:24px;height:24px;border-radius:50%;background:${u?u.color:'#888'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">${u?u.initials:'?'}</div>
+          <span style="flex:1;font-size:13px;">${eng}</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--blue2);">${hrs.toFixed(1)}h</span>
+        </div>`;
+      }).join('');
+      // Work type breakdown pills
+      const typePills=['Study','Estimation','STAAD Design','Checking','Other Work'].map(t=>{
+        const h=byT[t]||0;if(!h)return '';
+        return `<span style="background:${typeColors[t]}22;color:${typeColors[t]};border:1px solid ${typeColors[t]}44;padding:3px 9px;border-radius:12px;font-size:11px;font-family:var(--mono);font-weight:600;">${t}: ${h.toFixed(1)}h</span>`;
+      }).join('');
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow);">
+        <div style="padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--blue2);font-weight:700;">${q.qid}</div>
+            <div style="font-weight:700;font-size:14px;margin-top:2px;">${q.name}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+              <span style="font-size:11px;color:var(--text3);">${q.client||''}</span>
+              <span style="background:${stCol}22;color:${stCol};border:1px solid ${stCol}44;padding:1px 8px;border-radius:8px;font-size:10px;font-family:var(--mono);font-weight:600;">${normSt}</span>
+              ${q.revCount>0?`<span style="background:#fb923c22;color:#c05621;border:1px solid #fb923c44;padding:1px 7px;border-radius:8px;font-size:10px;font-family:var(--mono);">Rev ×${q.revCount}</span>`:''}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--blue2);">${totalQH.toFixed(1)}<span style="font-size:13px;">h</span></div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono);">total logged</div>
+          </div>
+        </div>
+        <div style="padding:12px 16px;">
+          ${engRows||'<div style="color:var(--text3);font-size:12px;padding:4px 0;">No time logged yet</div>'}
+          ${typePills?`<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">${typePills}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    byQuotEl.innerHTML=quotCards||'<div class="empty"><p>No quotations yet</p></div>';
+  }
+
+  // ══ TAB 3: ALL ENTRIES ═══════════════════════════════════
+  const cols=visibleCols('timelog');
+  const thead=document.getElementById('tl-thead');
+  if(thead)thead.innerHTML='<tr>'+cols.map(c=>`<th>${c.label}</th>`).join('')+'</tr>';
+  document.getElementById('tl-tbody').innerHTML=logSrc.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>`<tr>
+    ${cols.map(c=>{
+      if(c.key==='date') return `<td class="td-mono">${l.date}</td>`;
+      if(c.key==='eng')  return `<td style="font-weight:600;">${l.eng}</td>`;
+      if(c.key==='qid')  return `<td class="td-mono" style="color:var(--blue2);">${qmap[l.qid]?qmap[l.qid].qid:l.qid||'—'}</td>`;
+      if(c.key==='type') return `<td><span style="color:${typeColors[l.type]||'var(--text)'};font-size:12px;font-weight:600;">${l.type||'—'}</span></td>`;
+      if(c.key==='hrs')  return `<td class="td-mono" style="font-weight:700;color:var(--blue2);">${parseFloat(l.hrs||0).toFixed(1)}h</td>`;
+      if(c.key==='desc') return `<td style="font-size:12px;color:var(--text2);">${l.desc||'—'}</td>`;
+      return `<td>${l[c.key]||'—'}</td>`;
+    }).join('')}
+  </tr>`).join('')||`<tr><td colspan="${cols.length||6}"><div class="empty"><p>No time entries yet</p></div></td></tr>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TEAM VIEW
+// ══════════════════════════════════════════════════════════════
+function renderTeamView(){
+  const tls=getUsers().filter(u=>u.role==='Team Lead');
+  const engineers=getUsers().filter(u=>u.role==='Design Engineer');
+  const grid=document.getElementById('tl-team-grid');
+  if(!grid)return;
+  if(tls.length===0){
+    grid.innerHTML='<div style="padding:32px;text-align:center;color:var(--text3);background:var(--surface);border-radius:var(--radius2);border:1px solid var(--border);"><p>No Team Leads added yet.</p><p style="font-size:12px;margin-top:6px;">Go to Settings → Team Leads to add them.</p></div>';
+    return;
+  }
+  function lc(hex){if(!hex||hex.length<4)return true;const c=hex.replace('#','');return(parseInt(c.substr(0,2),16)*299+parseInt(c.substr(2,2),16)*587+parseInt(c.substr(4,2),16)*114)/1000>128;}
+  grid.innerHTML=tls.map(tl=>{
+    const myEngs=engineers.filter(e=>e.assignedTL===tl.name);
+    const activeProjs=db.quotations.filter(q=>q.tl===tl.name&&q.status!=='Completed').length;
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;box-shadow:var(--shadow);">
+      <div style="padding:14px 16px;background:${tl.color};display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;">${tl.initials}</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:#fff;">${tl.name}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.6);font-family:var(--mono);">${myEngs.length} engineer${myEngs.length!==1?'s':''} · ${activeProjs} active project${activeProjs!==1?'s':''}</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px;">
+        ${myEngs.length===0
+          ?'<div style="color:var(--text3);font-size:12px;text-align:center;padding:14px 0;">No engineers assigned yet.<br><small>Go to Settings → Engineers to assign them to this TL.</small></div>'
+          :myEngs.map(eng=>{
+            const engQ=db.quotations.filter(q=>q.eng===eng.name&&q.status!=='Completed');
+            const engHrs=db.logs.filter(l=>l.eng===eng.name).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+            return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:${eng.color};color:${lc(eng.color)?'#111':'#fff'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">${eng.initials}</div>
+                <span style="font-size:13px;font-weight:600;flex:1;color:var(--navy);">${eng.name}</span>
+                <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">${engHrs.toFixed(1)}h logged</span>
+              </div>
+              <div style="padding-left:37px;">
+                ${engQ.length===0
+                  ?'<span style="font-size:11px;color:var(--text3);">No active projects</span>'
+                  :engQ.map(q=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;">
+                    <span style="font-family:var(--mono);font-size:10px;color:var(--yellow);min-width:95px;font-weight:700;">${q.qid}</span>
+                    ${badge(q.status)}
+                    <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">${totalHrs(q.id).toFixed(1)}h</span>
+                    ${isDelayed(q)?'<span style="color:var(--red);font-size:10px;" title="Delayed">🔴</span>':''}
+                    ${q.hold?'<span style="color:var(--orange);font-size:10px;" title="On Hold">⏸</span>':''}
+                  </div>`).join('')}
+              </div>
+            </div>`;
+          }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderWorkload(){
+  const allEngs=getUsers().map(u=>u.name);
+  const engH={};allEngs.forEach(e=>{engH[e]=db.logs.filter(l=>l.eng===e).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);});
+  const sorted=Object.entries(engH).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]);
+  const maxH=Math.max(...sorted.map(e=>e[1]),1);
+  const users=getUsers();
+  const colors=users.map(u=>u.color);
+  document.getElementById('wl-content').innerHTML=`
+    <div class="two-col">
+      <div class="table-wrap" style="padding:18px;">
+        <div class="form-section-title" style="margin-bottom:14px;">Hours per Engineer</div>
+        ${sorted.map(([eng,hrs],i)=>{const u=users.find(x=>x.name===eng);return `<div class="wl-row"><div class="wl-name">${eng}</div><div class="wl-bar"><div class="prog-wrap" style="height:7px;"><div class="prog-bar" style="width:${(hrs/maxH*100).toFixed(0)}%;background:${u?u.color:colors[i%colors.length]};"></div></div></div><div class="wl-hrs">${hrs.toFixed(1)}h</div></div>`;}).join('')||'<div class="empty"><p>No data yet</p></div>'}
+      </div>
+      <div class="table-wrap" style="padding:18px;">
+        <div class="form-section-title" style="margin-bottom:14px;">Hours by Work Type</div>
+        ${['Study','Estimation','STAAD Design','Checking','Revision'].map(t=>{const h=db.logs.filter(l=>l.type===t).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);return `<div class="wl-row"><div class="wl-name">${t}</div><div class="wl-bar"><div class="prog-wrap" style="height:7px;"><div class="prog-bar" style="width:${(h/maxH*100).toFixed(0)}%;background:var(--blue2);"></div></div></div><div class="wl-hrs">${h.toFixed(1)}h</div></div>`;}).join('')}
+      </div>
+    </div>`;
+}
+
+function renderReports(){
+  const qHrs={};db.logs.forEach(l=>{qHrs[l.qid]=(qHrs[l.qid]||0)+(parseFloat(l.hrs)||0);});
+  const qmap={};db.quotations.forEach(q=>qmap[q.id]={qid:q.qid,name:q.name});
+  const maxH=Math.max(...Object.values(qHrs),1);
+  document.getElementById('rpt-content').innerHTML=`
+    <div class="table-wrap" style="padding:18px;margin-bottom:18px;">
+      <div class="form-section-title" style="margin-bottom:14px;">Hours per Quotation</div>
+      ${Object.entries(qHrs).sort((a,b)=>b[1]-a[1]).map(([qid,h])=>`<div class="wl-row"><div class="wl-name" style="color:var(--blue2);">${qmap[qid]?qmap[qid].qid:qid}</div><div class="wl-bar"><div class="prog-wrap"><div class="prog-bar" style="width:${(h/maxH*100).toFixed(0)}%;background:var(--blue2);"></div></div></div><div class="wl-hrs">${h.toFixed(1)}h</div></div>`).join('')||'<div class="empty"><p>No data yet</p></div>'}
+    </div>
+    <div class="table-wrap" style="padding:18px;">
+      <div class="form-section-title" style="margin-bottom:14px;">Status Distribution</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${STATUSES.map(s=>{const cnt=db.quotations.filter(q=>normaliseStatus(q.status)===s).length;return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:120px;"><div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">${s}</div><div style="font-size:22px;font-weight:700;color:${STATUS_COLOR[s]||'var(--navy)'};">${cnt}</div></div>`;}).join('')}
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DETAIL VIEW
+// ══════════════════════════════════════════════════════════════
+function showDetail(id){
+  const q=db.quotations.find(x=>x.id===id);if(!q)return;
+  const tasks=db.tasks.filter(t=>t.qid===id);
+  const logs=[...db.logs.filter(l=>l.qid===id)].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('dt-title').innerHTML=`<span style="color:var(--blue2);font-family:var(--mono);">${q.qid}</span> — ${q.name}`;
+  document.getElementById('dt-body').innerHTML=`
+    <div class="tabs">
+      <button class="tab-btn active" onclick="swTab(this,'dtb-ov')">Overview</button>
+
+      <button class="tab-btn" onclick="swTab(this,'dtb-tasks')">Tasks (${tasks.length})</button>
+      <button class="tab-btn" onclick="swTab(this,'dtb-log')">Time Log (${logs.length})</button>
+
+    </div>
+    <div class="tab-content active" id="dtb-ov">
+      ${q.hold?`<div class="alert alert-danger" style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:9px 12px;border-radius:7px;margin-bottom:8px;font-size:12px;">⏸ ON HOLD — ${q.holdReason||''} (since ${q.holdStart||'—'})</div>`:''}
+      ${isDelayed(q)?`<div class="alert alert-warning" style="background:#fffbeb;border:1px solid #fde68a;color:#854d0e;padding:9px 12px;border-radius:7px;margin-bottom:8px;font-size:12px;">⚠️ DELAYED — ${daysBetween(q.deadline)} days past deadline</div>`:''}
+      ${q.querySent?`<div class="alert alert-info" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:9px 12px;border-radius:7px;margin-bottom:8px;font-size:12px;">❓ Query sent on ${q.queryDate||'—'}</div>`:''}
+      <div class="detail-grid">
+        <div class="detail-item"><div class="d-label">Client</div><div class="d-value">${q.name}</div></div>
+        <div class="detail-item"><div class="d-label">Consultant</div><div class="d-value">${q.client||'—'}</div></div>
+        <div class="detail-item"><div class="d-label">Project Type</div><div class="d-value"><span style="background:${q.ptype==='Job'?'#eff6ff':'#fff7ed'};color:${q.ptype==='Job'?'#1e40af':'#c2410c'};border:1px solid ${q.ptype==='Job'?'#93c5fd':'#fed7aa'};padding:2px 9px;border-radius:10px;font-size:11px;font-family:var(--mono);font-weight:700;">${q.ptype||'Quote'} Stage</span></div></div>
+        <div class="detail-item"><div class="d-label">Date Received</div><div class="d-value">${q.dateRcvd}</div></div>
+        <div class="detail-item"><div class="d-label">Deadline</div><div class="d-value" style="color:${isDelayed(q)?'var(--red)':''};">${q.deadline||'—'}</div></div>
+        <div class="detail-item"><div class="d-label">Team Lead</div><div class="d-value">${q.tl||'—'}</div></div>
+        <div class="detail-item"><div class="d-label">Engineer</div><div class="d-value">${q.eng||'—'}</div></div>
+        <div class="detail-item"><div class="d-label">Status</div><div class="d-value">${badge(q.status)}</div></div>
+        <div class="detail-item"><div class="d-label">Current Step</div><div class="d-value" style="font-family:var(--mono);font-weight:700;">${q.currentStep||'—'}</div></div>
+        <div class="detail-item"><div class="d-label">Total Hours</div><div class="d-value" style="color:var(--blue2);font-weight:700;">${totalHrs(q.id).toFixed(1)}h</div></div>
+        <div class="detail-item"><div class="d-label">Revisions</div><div class="d-value" style="color:${q.revCount>0?'var(--orange)':''};">${q.revCount} (${(q.revParts||[]).join(', ')||'none'})</div></div>
+        <div class="detail-item"><div class="d-label">Days Active</div><div class="d-value">${daysBetween(q.dateRcvd)} days</div></div>
+      </div>
+      ${q.notes?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--text2);"><div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px;">NOTES / QRF REF</div>${q.notes}</div>`:''}
+    </div>
+
+    <div class="tab-content" id="dtb-tasks">
+      ${tasks.length===0?'<div class="empty"><p>No tasks yet.</p></div>':
+        tasks.map(t=>{const ah=db.logs.filter(l=>l.tid===t.id).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);const pct=t.estHrs?Math.min(100,(ah/t.estHrs*100)).toFixed(0):0;return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${tbadge(t.type)}<span style="font-weight:600;flex:1;font-size:13px;">${t.name}</span><span style="font-size:11px;font-family:var(--mono);color:var(--text3);">${t.status}</span></div><div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;">👷 ${t.eng} · Est: ${t.estHrs||'—'}h · <span style="color:var(--blue2);">Logged: ${ah.toFixed(1)}h</span></div><div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:${parseInt(pct)>100?'var(--red)':'var(--blue2)'};"></div></div></div>`;}).join('')}
+    </div>
+    <div class="tab-content" id="dtb-log">
+      ${logs.length===0?'<div class="empty"><p>No time logged yet.</p></div>':
+        logs.map(l=>`<div class="time-entry"><span class="te-date">${l.date}</span><span style="font-weight:600;font-size:13px;flex:1;">${l.eng}</span>${tbadge(l.type)}<span style="font-size:12px;color:var(--text2);flex:2;">${l.desc||''}</span><span class="te-hrs">${parseFloat(l.hrs).toFixed(1)}h</span></div>`).join('')}
+    </div>
+`;
+  const canAssign=(currentUser.role==='Team Lead'||currentUser.role==='Full Access')&&q.status==='Assigned to TL';
+  const canEdit =(currentUser.role==='Team Lead'||currentUser.role==='Full Access');
+  const canDelete=(currentUser.role==='Full Access');
+  document.getElementById('dt-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeModal('m-detail')">Close</button>
+    <button class="btn btn-ghost" onclick="closeModal('m-detail');openModal('m-timelog')">⏱ Log Time</button>
+    ${canAssign?`<button class="btn btn-success" onclick="openAssignEngineer('${q.id}')">👷 Assign Engineer</button>`:''}
+    ${canEdit?`<button class="btn btn-ghost" onclick="openEditQuotation('${q.id}')">✏️ Edit</button>`:''}
+    ${canDelete?`<button class="btn btn-danger" data-delete-qid="${q.id}" style="margin-left:auto;">🗑 Delete</button>`:''}
+    <button class="btn btn-primary" onclick="openStatusUpdate('${q.id}')">Update Status</button>`;
+  openModal('m-detail');
+}
+function swTab(btn,id){
+  const par=btn.closest('.modal-body,.page');
+  par.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  par.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');document.getElementById(id).classList.add('active');
+}
+
+async function deleteQ(id){
+  const q=db.quotations.find(x=>x.id===id);
+  if(!q)return;
+  if(!confirm('Delete "'+q.qid+' — '+q.name+'"?\n\nThis will also remove all tasks and time logs linked to this quotation.\nThis cannot be undone.'))return;
+  closeModal('m-detail');
+  // Remove from local db immediately
+  db.quotations=db.quotations.filter(x=>x.id!==id);
+  db.tasks=db.tasks.filter(t=>t.qid!==id);
+  db.logs=db.logs.filter(l=>l.qid!==id);
+  refreshAll();
+  showToast('🗑 Quotation deleted','#ef4444');
+  // Sync to Google Sheets if connected
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('deleteQ',{id}); }
+    catch(e){ console.warn('Delete sync failed',e); }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// STATUS UPDATE
+// ══════════════════════════════════════════════════════════════
+function openStatusUpdate(id){
+  closeModal('m-detail');
+  document.getElementById('us-qid').value=id;
+  const q=db.quotations.find(x=>x.id===id);if(!q)return;
+  const isEng=currentUser.role==='Design Engineer';
+  const isTL =currentUser.role==='Team Lead';
+  const cur=normaliseStatus(q.status);
+  // Show quotation info
+  const infoEl=document.getElementById('us-qinfo');
+  if(infoEl)infoEl.innerHTML='<span style="font-family:var(--mono);color:var(--blue2);font-weight:700;">'+q.qid+'</span> — '+q.name+'<span style="margin-left:10px;">'+badge(cur)+'</span>';
+  // Build status grid (engineers cannot go to Assigned to TL)
+  // Permission rules:
+  // Engineers: cannot set Assigned to TL
+  // TLs: cannot set Received (GM's job)
+  const allSt=isEng
+    ?STATUSES.filter(s=>s!=='Assigned to TL')
+    :isTL
+      ?STATUSES.filter(s=>s!=='Received')
+      :STATUSES;
+  const grid=document.getElementById('us-status-grid');
+  if(grid)grid.innerHTML=allSt.map(s=>{
+    const active=s===cur;
+    const col=STATUS_COLOR[s]||'#888';
+    return `<div onclick="selectUsStatus('${s}')" style="padding:9px 10px;border:2px solid ${active?col:'var(--border)'};border-radius:var(--radius);cursor:pointer;text-align:center;background:${active?col+'22':'var(--surface2)'};transition:all 0.15s;" data-us="${s}">
+      <div style="font-size:11px;font-weight:${active?'700':'500'};color:${active?col:'var(--text2)'};">${s}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('us-status').value=cur;
+  toggleStatusFields();
+  openModal('m-status');
+}
+function selectUsStatus(s){
+  document.getElementById('us-status').value=s;
+  const grid=document.getElementById('us-status-grid');
+  if(grid)grid.querySelectorAll('[data-us]').forEach(el=>{
+    const esS=el.getAttribute('data-us');
+    const col=STATUS_COLOR[esS]||'#888';
+    const active=esS===s;
+    el.style.border='2px solid '+(active?col:'var(--border)');
+    el.style.background=active?col+'22':'var(--surface2)';
+    el.querySelector('div').style.color=active?col:'var(--text2)';
+    el.querySelector('div').style.fontWeight=active?'700':'500';
+  });
+  toggleStatusFields();
+}
+function toggleStatusFields(){
+  const s=document.getElementById('us-status').value;
+  document.getElementById('hold-fields').style.display  = s==='On Hold'?'block':'none';
+  document.getElementById('rev-fields').style.display   = s==='In Progress'&&document.getElementById('rev-est')?'block':'none';
+  document.getElementById('sales-fields').style.display = s==='Sent to Sales'?'block':'none';
+  // Show revision fields if moving back to In Progress (allow marking revision)
+  if(s==='In Progress') document.getElementById('rev-fields').style.display='block';
+  else document.getElementById('rev-fields').style.display='none';
+  if(document.getElementById('sales-warn')) document.getElementById('sales-warn').style.display='none';
+}
+async function applyStatus(){
+  const id=document.getElementById('us-qid').value;
+  const status=document.getElementById('us-status').value;
+  const q=db.quotations.find(x=>x.id===id);if(!q)return;
+  // Sent to Sales — validate checklist
+  if(status==='Sent to Sales'){
+    const estOk=document.getElementById('sales-est').checked;
+    const drawOk=document.getElementById('sales-drawing').checked;
+    if(!estOk||!drawOk){
+      document.getElementById('sales-warn').style.display='block';
+      return; // don't close — make them tick both
+    }
+    q.estSent=true; q.drawingSent=true; q.sentToSalesDate=today();
+  }
+  q.status=status;
+  if(status==='On Hold'){q.hold=true;q.holdStart=today();q.holdReason=document.getElementById('us-reason').value;}
+  else if(q.hold&&status!=='On Hold'){q.hold=false;q.holdEnd=today();}
+  // Revision tracking — when moving back to In Progress
+  if(status==='In Progress'){
+    const parts=[];
+    if(document.getElementById('rev-est').checked)parts.push('Estimation');
+    if(document.getElementById('rev-staad').checked)parts.push('STAAD Design');
+    if(parts.length>0){
+      q.revCount=(q.revCount||0)+1;
+      q.revParts=[...new Set([...(q.revParts||[]),...parts])];
+    }
+    // Uncheck after reading
+    document.getElementById('rev-est').checked=false;
+    document.getElementById('rev-staad').checked=false;
+  }
+  if(status==='Completed')q.completedDate=today();
+  closeModal('m-status');
+  refreshAll();
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('updateQ',q); }
+    catch(e){ console.warn('Sync failed, saved locally only'); }
+  }
+}
+function openAssignEngineer(qid){
+  const q=db.quotations.find(x=>x.id===qid);if(!q)return;
+  // Only TL and GM can assign
+  if(currentUser.role==='Design Engineer'){alert('Only Team Leads and GM can assign engineers.');return;}
+  // TL can only assign to their own team
+  const users=getUsers();
+  let eligible=users.filter(u=>u.role==='Design Engineer');
+  if(currentUser.role==='Team Lead')
+    eligible=eligible.filter(e=>e.assignedTL===currentUser.name);
+  document.getElementById('assign-qid').value=qid;
+  document.getElementById('assign-qinfo').innerHTML=
+    '<div style="font-weight:700;color:var(--navy);">'+q.qid+' — '+q.name+'</div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-top:3px;">Client: '+q.client+'&nbsp;·&nbsp;Received: '+q.dateRcvd+'</div>'+
+    (q.deadline?'<div style="font-size:11px;color:var(--red);margin-top:2px;">Deadline: '+q.deadline+'</div>':'');
+  const sel=document.getElementById('assign-eng-sel');
+  sel.innerHTML=eligible.length===0
+    ?'<option value="">No engineers available</option>'
+    :'<option value="">-- Select engineer --</option>'+eligible.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+  // Pre-select current assigned if any
+  if(q.eng&&eligible.find(e=>e.name===q.eng))sel.value=q.eng;
+  closeModal('m-detail');
+  openModal('m-assign');
+}
+
+async function doAssignEngineer(){
+  const qid=document.getElementById('assign-qid').value;
+  const eng=document.getElementById('assign-eng-sel').value;
+  if(!eng){alert('Please select an engineer');return;}
+  const q=db.quotations.find(x=>x.id===qid);if(!q)return;
+  q.eng=eng;
+  q.status='Assigned to Engineer';
+  q.assignedDate=today();
+  closeModal('m-assign');
+  refreshAll();
+  if(!DEMO_MODE&&API_URL){try{await apiCall('updateQ',q);}catch(e){}}
+}
+
+async function resumeQ(id){
+  const q=db.quotations.find(x=>x.id===id);if(!q)return;
+  q.hold=false;q.holdEnd=today();q.status='In Progress';
+  refreshAll();
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('updateQ',q); }
+    catch(e){ console.warn('Sync failed, saved locally only'); }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SAVE HANDLERS
+// ══════════════════════════════════════════════════════════════
+async function saveQ(){
+  const qid=document.getElementById('q-id').value.trim();
+  const name=document.getElementById('q-name').value.trim();
+  if(!qid){alert('Please enter a Quotation ID (e.g. QUO-2025-006)');return;}
+  if(!name){alert('Please enter a Project Name');return;}
+  const q={
+    id:uid(), qid, name,
+    client:   document.getElementById('q-client').value.trim()||'—',
+    ptype:    document.getElementById('q-ptype')?document.getElementById('q-ptype').value:'Quote',
+    dateRcvd: document.getElementById('q-date').value||today(),
+    deadline: document.getElementById('q-deadline').value||'',
+    tl:       document.getElementById('q-tl').value||'',
+    eng:      document.getElementById('q-eng').value||'',
+    status:'Received', hold:false, holdReason:'', holdStart:'', holdEnd:'',
+    revCount:0, revParts:[], querySent:false, queryDate:'',
+    currentStep:'S1', completedSteps:[],
+    estDone:false, staadDone:false, sentToSalesDate:'', completedDate:'',
+    notes: document.getElementById('q-notes').value||''
+  };
+  // Push to local db immediately
+  db.quotations.push(q);
+  // Close modal
+  closeModal('m-quotation');
+  // Clear form fields
+  ['q-id','q-name','q-client','q-deadline','q-notes'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
+  // Navigate to Quotations page so user sees the new row
+  navigate('quotations');
+  // Try to sync to Google Sheets if in Live mode (non-blocking)
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('saveQ',q); }
+    catch(e){ console.warn('Sheets sync failed, saved locally'); }
+  }
+}
+
+async function saveTask(){
+  const name=document.getElementById('t-name').value.trim();
+  const qid=document.getElementById('t-quot').value;
+  if(!name){alert('Please enter a Task Name');return;}
+  if(!qid){alert('Please select a Quotation');return;}
+  const t={
+    id:uid(), name, qid,
+    type:   document.getElementById('t-type').value,
+    eng:    document.getElementById('t-eng').value||'',
+    status: document.getElementById('t-status').value,
+    start:  document.getElementById('t-start').value||today(),
+    estHrs: parseFloat(document.getElementById('t-hrs').value)||0,
+    rev:    parseInt(document.getElementById('t-rev').value)||0,
+    notes:  document.getElementById('t-notes').value||''
+  };
+  db.tasks.push(t);
+  closeModal('m-task');
+  navigate('tasks');
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('saveTask',t); }
+    catch(e){ console.warn('Sheets sync failed, saved locally'); }
+  }
+}
+
+async function saveLog(){
+  const qid=document.getElementById('tl-quot').value;
+  const hrs=parseFloat(document.getElementById('tl-hrs').value);
+  const wtype=document.getElementById('tl-type').value;
+  // Engineer is always current user for Design Engineers; selectable for GM/TL
+  const engEl=document.getElementById('tl-eng');
+  const eng=engEl?engEl.value:currentUser.name;
+  if(!qid){alert('Please select a Quotation');return;}
+  if(!hrs||hrs<=0){alert('Please enter hours (e.g. 2.5)');return;}
+  if(!wtype){alert('Please select a Work Type');return;}
+  if(!eng){alert('Engineer name is required');return;}
+  const l={
+    id:uid(), qid, tid:'', eng,
+    date: document.getElementById('tl-date').value||today(),
+    hrs, type: wtype,
+    desc: document.getElementById('tl-desc').value||''
+  };
+  db.logs.push(l);
+  closeModal('m-timelog');
+  // Reset form
+  document.getElementById('tl-hrs').value='';
+  document.getElementById('tl-desc').value='';
+  document.getElementById('tl-type').value='';
+  document.querySelectorAll('.wtype-btn').forEach(b=>b.classList.remove('selected'));
+  showToast('✅ Time logged — '+wtype+' · '+hrs+'h','#0d7a4a');
+  refreshAll();
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('saveLog',l); }
+    catch(e){ console.warn('Sheets sync failed, saved locally'); }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════════════════════
+function openModal(id){
+  const users=getUsers();
+  const tls=getTLs();const engs=getEngineers();
+  const qOpts=db.quotations.map(q=>`<option value="${q.id}">${q.qid} — ${q.name}</option>`).join('');
+  const tlOpts='<option value="">— Select Team Lead —</option>'+tls.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  const allOpts=users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  // Quotation modal — TL first, then filter engineers
+  const qtlEl=document.getElementById('q-tl');if(qtlEl)qtlEl.innerHTML=tlOpts;
+  const qengEl=document.getElementById('q-eng');if(qengEl)qengEl.innerHTML='<option value="">— Select TL first —</option>';
+  // Task modal
+  [['t-eng',allOpts]].forEach(([sid,opts])=>{const el=document.getElementById(sid);if(el)el.innerHTML=opts;});
+  [['t-quot',qOpts]].forEach(([sid,opts])=>{const el=document.getElementById(sid);if(el)el.innerHTML=opts;});
+  // Time log modal
+  // tl-eng and tl-quot are populated inside the m-timelog branch above
+  // Daily log modal
+  const dlEngEl=document.getElementById('dl-eng');
+  if(dlEngEl){dlEngEl.innerHTML=allOpts;if(currentUser.role!=='Full Access')dlEngEl.value=currentUser.name;}
+  const dlQuotEl=document.getElementById('dl-quot');if(dlQuotEl)dlQuotEl.innerHTML=qOpts;
+  if(id==='m-dailylog'){
+    const dlDate=document.getElementById('dl-date');if(dlDate)dlDate.value=today();
+    updateDLSteps();
+    dlTempFiles=[];renderDLFileChips();
+  }
+  if(id==='m-timelog'){
+    const d=document.getElementById('tl-date');if(d)d.value=today();
+    // Wire work type buttons
+    document.querySelectorAll('.wtype-btn').forEach(btn=>{
+      btn.classList.remove('selected');
+      btn.onclick=function(){
+        document.querySelectorAll('.wtype-btn').forEach(b=>b.classList.remove('selected'));
+        this.classList.add('selected');
+        document.getElementById('tl-type').value=this.getAttribute('data-type');
+      };
+    });
+    document.getElementById('tl-type').value='';
+    // Filter quotations: engineers only see their assigned ones
+    const tlQuotEl=document.getElementById('tl-quot');
+    if(tlQuotEl){
+      let qlist=db.quotations.filter(q=>q.status!=='Completed');
+      if(currentUser.role==='Design Engineer') qlist=qlist.filter(q=>q.eng===currentUser.name);
+      else if(currentUser.role==='Team Lead') qlist=qlist.filter(q=>q.tl===currentUser.name||q.eng===currentUser.name);
+      tlQuotEl.innerHTML='<option value="">— Select quotation —</option>'+qlist.map(q=>`<option value="${q.id}">${q.qid} — ${q.name}</option>`).join('');
+    }
+    // Show engineer picker for GM/TL; hide for Design Engineers
+    const tlEngRow=document.getElementById('tl-eng-row');
+    const tlEngEl2=document.getElementById('tl-eng');
+    if(tlEngRow&&tlEngEl2){
+      if(currentUser.role==='Full Access'||currentUser.role==='Team Lead'){
+        tlEngRow.style.display='block';
+        const visEngs=currentUser.role==='Team Lead'
+          ?getUsers().filter(u=>u.assignedTL===currentUser.name||u.name===currentUser.name)
+          :getUsers().filter(u=>u.role!=='Full Access'||u.name===currentUser.name);
+        tlEngEl2.innerHTML=visEngs.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+      } else {
+        tlEngRow.style.display='none';
+      }
+    }
+  }
+  document.getElementById(id).style.display='flex';
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){
+  document.getElementById(id).style.display='none';
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);});});
+
+// ══════════════════════════════════════════════════════════════
+// FILTER ENGINEERS BY TEAM LEAD
+// ══════════════════════════════════════════════════════════════
+function filterEngByTL(){
+  const tl=document.getElementById('q-tl').value;
+  const engs=tl
+    ?getUsers().filter(u=>u.role==='Design Engineer'&&u.assignedTL===tl)
+    :getUsers().filter(u=>u.role==='Design Engineer');
+  document.getElementById('q-eng').innerHTML=
+    '<option value="">— Select engineer —</option>'+
+    engs.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// DAILY ACTIVITY LOG — DATA
+// ══════════════════════════════════════════════════════════════
+const QUOTE_STEPS=[
+  {n:'S1',d:'Upload QRF & Tender Documents'},
+  {n:'S2',d:'Assign to Design Team'},
+  {n:'S3',d:'TL assigns to Designer'},
+  {n:'S4',d:'Review documents & raise queries'},
+  {n:'S5',d:'Upload corrected QRF-R1'},
+  {n:'S6',d:'Prepare Estimate & Proposal Drawings'},
+  {n:'S7',d:'TL approval / rejection'},
+  {n:'S8',d:'Upload working design files to server'},
+  {n:'S9',d:'Corrections on Estimate/Proposal'},
+  {n:'S10',d:'Revised QRF-R2 for scope revision'},
+];
+const JOB_STEPS=[
+  {n:'J1',d:'Upload JDS & final tender documents'},
+  {n:'J2',d:'PMC validates & approves JDS'},
+  {n:'J3',d:'Assign JOB to design team'},
+  {n:'J4',d:'TL assigns to designer'},
+  {n:'J5',d:'Review documents & raise queries'},
+  {n:'J6',d:'Upload corrected JDS-R1'},
+  {n:'J7',d:'Prepare final design & design sketches'},
+  {n:'J8',d:'TL approval / rejection'},
+  {n:'J9',d:'Assign to detailing checker'},
+];
+
+let dlTempFiles=[];
+let dlLogFilter='all';
+
+function updateDLSteps(){
+  const stage=(document.getElementById('dl-stage')||{}).value||'Quote';
+  const steps=stage==='Job'?JOB_STEPS:QUOTE_STEPS;
+  const sel=document.getElementById('dl-step');
+  if(sel)sel.innerHTML=steps.map(s=>`<option value="${s.n}">${s.n} — ${s.d}</option>`).join('');
+}
+
+function dlAddFile(){
+  const sel=document.getElementById('dl-file-sel');
+  if(!sel||!sel.value)return;
+  if(!dlTempFiles.includes(sel.value)){dlTempFiles.push(sel.value);renderDLFileChips();}
+  sel.value='';
+}
+
+function removeDLFile(f){
+  dlTempFiles=dlTempFiles.filter(x=>x!==f);
+  renderDLFileChips();
+}
+
+function renderDLFileChips(){
+  const el=document.getElementById('dl-file-chips');
+  if(!el)return;
+  el.innerHTML=dlTempFiles.map(f=>
+    `<span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;font-family:var(--mono);cursor:pointer;" onclick="removeDLFile('${f}')">${f} ✕</span>`
+  ).join('');
+}
+
+async function saveDailyLog(){
+  const eng=(document.getElementById('dl-eng')||{}).value;
+  const task=((document.getElementById('dl-task')||{}).value||'').trim();
+  const qid=(document.getElementById('dl-quot')||{}).value;
+  if(!eng){alert('Please select an engineer');return;}
+  if(!task){alert('Please describe the task done today');return;}
+  const entry={
+    id:uid(),
+    eng,
+    qid:qid||'',
+    date:(document.getElementById('dl-date')||{}).value||today(),
+    ptype:(document.getElementById('dl-stage')||{}).value||'Quote',
+    step:(document.getElementById('dl-step')||{}).value||'S1',
+    status:(document.getElementById('dl-status')||{}).value||'WIP',
+    task,
+    files:[...dlTempFiles],
+    blocker:((document.getElementById('dl-blocker')||{}).value||'').trim(),
+    next:((document.getElementById('dl-next')||{}).value||'').trim(),
+  };
+  db.activityLogs.push(entry);
+  dlTempFiles=[];renderDLFileChips();
+  // Clear form
+  ['dl-task','dl-blocker','dl-next'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  closeModal('m-dailylog');
+  navigate('timelog');
+  if(!DEMO_MODE&&API_URL){try{await apiCall('saveActivityLog',entry);}catch(e){console.warn('Sync failed');}}
+}
+
+// ══════════════════════════════════════════════════════════════
+// DAILY LOG PAGE RENDERER
+// ══════════════════════════════════════════════════════════════
+function renderDailyLog(){
+  const src=currentUser.role==='Design Engineer'
+    ?db.activityLogs.filter(l=>l.eng===currentUser.name)
+    :db.activityLogs;
+
+  // Stats
+  const statsEl=document.getElementById('dl-stats');
+  if(statsEl){
+    const cnt=v=>src.filter(l=>l.status===v).length;
+    statsEl.innerHTML=`
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 15px;border-top:3px solid #f59e0b;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:3px;">Total Logs</div>
+        <div style="font-size:22px;font-weight:800;">${src.length}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 15px;border-top:3px solid #ea580c;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:3px;">WIP</div>
+        <div style="font-size:22px;font-weight:800;">${cnt('WIP')}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 15px;border-top:3px solid #16a34a;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:3px;">Done</div>
+        <div style="font-size:22px;font-weight:800;">${cnt('Done')}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 15px;border-top:3px solid #dc2626;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:3px;">Blocked</div>
+        <div style="font-size:22px;font-weight:800;">${cnt('Blocked')}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 15px;border-top:3px solid #1d4ed8;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:3px;">Under Review</div>
+        <div style="font-size:22px;font-weight:800;">${cnt('Under Review')}</div>
+      </div>`;
+  }
+
+  // Filter bar
+  const filtersEl=document.getElementById('dl-filters');
+  if(filtersEl){
+    filtersEl.innerHTML=['all','WIP','Done','Under Review','Blocked'].map(f=>
+      `<span class="filter-chip${dlLogFilter===f?' active':''}" data-dlfilter="${f}">${f==='all'?'All':f}</span>`
+    ).join('');
+  }
+
+  // Log list
+  const listEl=document.getElementById('dl-list');
+  if(!listEl)return;
+  const filtered=dlLogFilter==='all'?src:src.filter(l=>l.status===dlLogFilter);
+  const sorted=[...filtered].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(sorted.length===0){listEl.innerHTML=`<div style="padding:32px;text-align:center;color:var(--text3);"><div style="font-size:28px;margin-bottom:8px;">📝</div><p>No activity logs yet. Click "+ Log Activity" to start.</p></div>`;return;}
+
+  const qmap={};db.quotations.forEach(q=>qmap[q.id]=q.qid);
+  const scls={WIP:'#ea580c',Done:'#16a34a',Blocked:'#dc2626','Under Review':'#1d4ed8'};
+  const sbg={WIP:'#fff7ed',Done:'#f0fdf4',Blocked:'#fef2f2','Under Review':'#eff6ff'};
+
+  listEl.innerHTML=sorted.map(l=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:8px;border-left:3px solid ${scls[l.status]||'#ccc'};">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:700;">${l.eng}</span>
+        <span style="font-size:10px;font-family:var(--mono);color:var(--text3);">${l.date}</span>
+        <span style="font-size:10px;font-family:var(--mono);color:#f59e0b;font-weight:700;">${qmap[l.qid]||l.qid||'—'}</span>
+        <span style="background:var(--surface2);border:1px solid var(--border);padding:1px 7px;border-radius:5px;font-size:10px;font-family:var(--mono);">${l.step}</span>
+        <span style="background:${sbg[l.status]||'#f5f5f5'};color:${scls[l.status]||'#333'};padding:2px 8px;border-radius:8px;font-size:10px;font-family:var(--mono);font-weight:600;">${l.status}</span>
+        <span style="background:${l.ptype==='Job'?'#eff6ff':'#fff7ed'};color:${l.ptype==='Job'?'#1e40af':'#c2410c'};border:1px solid ${l.ptype==='Job'?'#93c5fd':'#fed7aa'};padding:1px 7px;border-radius:8px;font-size:10px;font-family:var(--mono);font-weight:700;">${l.ptype} Stage</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:${l.files&&l.files.length?'6px':'0'}line-height:1.5;">${l.task}</div>
+      ${l.files&&l.files.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;">${l.files.map(f=>`<span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 7px;border-radius:3px;font-size:10px;font-family:var(--mono);">${f}</span>`).join('')}</div>`:''}
+      ${l.blocker?`<div style="font-size:11px;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;padding:4px 8px;border-radius:4px;margin-top:5px;">⚠️ Blocker: ${l.blocker}</div>`:''}
+      ${l.next?`<div style="font-size:11px;color:var(--text3);margin-top:5px;">→ Next: ${l.next}</div>`:''}
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// DEMO DATA (UPDATED)
+// ══════════════════════════════════════════════════════════════
+function seedDemoData(){
+  const users=getUsers();
+  const tl1=users.find(u=>u.role==='Team Lead')||users[0];
+  const eng1=users.find(u=>u.role==='Design Engineer')||users[0];
+  const q1id=uid(),q2id=uid(),q3id=uid();
+  db.quotations=[
+    {id:q1id,qid:'QUO-2025-001',name:'Mahindra Cold Chain Facility',client:'ABC Consultants',ptype:'Quote',dateRcvd:'2025-03-01',deadline:'2025-03-25',tl:tl1.name,eng:eng1.name,status:'In Progress',hold:false,holdReason:'',holdStart:'',holdEnd:'',revCount:1,revParts:['Estimation'],querySent:false,queryDate:'',currentStep:'S6',completedSteps:['S1','S2','S3','S4','S5'],estDone:false,staadDone:false,sentToSalesDate:'',completedDate:'',notes:'QRF-001 received via email. Large span portal frame.'},
+    {id:q2id,qid:'QUO-2025-002',name:'Tata Motors Warehouse',client:'',ptype:'Quote',dateRcvd:'2025-03-05',deadline:'2025-03-28',tl:tl1.name,eng:eng1.name,status:'On Hold',hold:true,holdReason:'Load combination data pending from client',holdStart:'2025-03-08',holdEnd:'',revCount:0,revParts:[],querySent:true,queryDate:'2025-03-07',currentStep:'S4',completedSteps:['S1','S2','S3'],estDone:false,staadDone:false,sentToSalesDate:'',completedDate:'',notes:''},
+    {id:q3id,qid:'QUO-2025-003',name:'IndiGo Aircraft Hangar',client:'XYZ Structural',ptype:'Job',dateRcvd:'2025-03-10',deadline:'2025-04-10',tl:tl1.name,eng:eng1.name,status:'In Progress',hold:false,holdReason:'',holdStart:'',holdEnd:'',revCount:0,revParts:[],querySent:false,queryDate:'',currentStep:'J2',completedSteps:['J1'],estDone:false,staadDone:false,sentToSalesDate:'',completedDate:'',notes:'80m clear span — special wind zone.'},
+  ];
+  const t1=uid(),t2=uid();
+  db.tasks=[
+    {id:t1,name:'Estimation – QUO-2025-001',qid:q1id,type:'Estimation',eng:eng1.name,status:'In Progress',start:'2025-03-05',estHrs:6,rev:0,notes:''},
+    {id:t2,name:'STAAD Design – QUO-2025-001',qid:q1id,type:'STAAD Design',eng:eng1.name,status:'Not Started',start:'2025-03-10',estHrs:10,rev:0,notes:''},
+  ];
+  db.logs=[
+    {id:uid(),qid:q1id,tid:t1,eng:eng1.name,date:'2025-03-05',hrs:3,type:'Estimation',desc:'Started cost estimation spreadsheet'},
+    {id:uid(),qid:q1id,tid:'',eng:eng1.name,date:'2025-03-06',hrs:2,type:'Study',desc:'Reviewed QRF document and tender conditions'},
+    {id:uid(),qid:q2id,tid:'',eng:eng1.name,date:'2025-03-05',hrs:2,type:'Study',desc:'Initial document review'},
+    {id:uid(),qid:q3id,tid:'',eng:eng1.name,date:'2025-03-11',hrs:1.5,type:'Study',desc:'Reviewed JDS and wind zone requirements'},
+  ];
+  db.activityLogs=[];
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+// COLUMN CUSTOMISATION
+// ══════════════════════════════════════════════════════════════
+const DEFAULT_COLS={
+  quotations:[
+    {key:'qid',    label:'QUO ID',       visible:true},
+    {key:'name',   label:'Project/Client',visible:true},
+    {key:'eng',    label:'Engineer',      visible:true},
+    {key:'status', label:'Status',        visible:true},
+    {key:'days',   label:'Days',          visible:true},
+    {key:'hours',  label:'Hours',         visible:true},
+    {key:'delay',  label:'Delay',         visible:true},
+    {key:'rev',    label:'Rev #',         visible:true},
+    {key:'actions',label:'Actions',       visible:true},
+  ],
+  tasks:[
+    {key:'name',      label:'Task',       visible:true},
+    {key:'qid',       label:'QUO ID',     visible:true},
+    {key:'type',      label:'Type',       visible:true},
+    {key:'eng',       label:'Assigned To',visible:true},
+    {key:'status',    label:'Status',     visible:true},
+    {key:'estHrs',    label:'Est. Hrs',   visible:true},
+    {key:'loggedHrs', label:'Logged',     visible:true},
+  ],
+  timelog:[
+    {key:'date', label:'Date',      visible:true},
+    {key:'eng',  label:'Engineer',  visible:true},
+    {key:'qid',  label:'QUO ID',   visible:true},
+    {key:'type', label:'Work Type', visible:true},
+    {key:'hrs',  label:'Hours',     visible:true},
+    {key:'desc', label:'Description',visible:true},
+  ],
+};
+
+let colConfigs={};
+let activeColTable='';
+let dragSrcIdx=null;
+
+function getColConfig(t){
+  if(!colConfigs[t]){
+    const saved=localStorage.getItem('peb_cols_'+t);
+    colConfigs[t]=saved?JSON.parse(saved):JSON.parse(JSON.stringify(DEFAULT_COLS[t]||[]));
+  }
+  return colConfigs[t];
+}
+function saveColConfig(t){localStorage.setItem('peb_cols_'+t,JSON.stringify(colConfigs[t]));}
+function visibleCols(t){return getColConfig(t).filter(c=>c.visible);}
+
+function openColPanel(table){
+  activeColTable=table;
+  renderColPanel(table);
+  document.getElementById('col-panel').classList.add('open');
+}
+function closeColPanel(){
+  document.getElementById('col-panel').classList.remove('open');
+  refreshAll();
+}
+function resetColConfig(){
+  colConfigs[activeColTable]=JSON.parse(JSON.stringify(DEFAULT_COLS[activeColTable]||[]));
+  saveColConfig(activeColTable);
+  renderColPanel(activeColTable);
+  refreshAll();
+}
+function renderColPanel(table){
+  const cols=getColConfig(table);
+  const rows=cols.map((c,i)=>`
+    <div class="col-item" draggable="true"
+      ondragstart="dragColStart(event,${i})"
+      ondragover="dragColOver(event)"
+      ondrop="dropCol(event,${i},'${table}')"
+      ondragleave="dragColLeave(event)">
+      <span style="color:var(--text3);font-size:13px;cursor:grab;">⠿</span>
+      <span class="col-name">${c.label}</span>
+      ${c.custom?`<button onclick="removeCustomCol('${table}',${i})" title="Remove" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 3px;">✕</button>`:''}
+      <button class="col-toggle ${c.visible?'on':'off'}" onclick="toggleCol('${table}',${i})" title="${c.visible?'Hide':'Show'}"></button>
+    </div>`).join('');
+  document.getElementById('col-panel-body').innerHTML=
+    '<p style="font-size:11px;color:var(--text3);margin-bottom:11px;font-family:var(--mono);">⠿ Drag to reorder &nbsp;·&nbsp; Toggle to show/hide</p>'+
+    rows+
+    `<div class="add-col-box">
+      <h4>➕ Add Custom Column</h4>
+      <div style="display:flex;gap:7px;margin-top:6px;">
+        <input class="form-input" id="new-col-name" placeholder="Column label" style="flex:1;padding:7px 10px;background:#fff;border-color:#ddd;color:#111;">
+        <button class="btn btn-primary btn-xs" onclick="addCustomCol('${table}')">Add</button>
+      </div>
+    </div>`;
+}
+function toggleCol(t,i){
+  const c=getColConfig(t);c[i].visible=!c[i].visible;
+  saveColConfig(t);renderColPanel(t);
+}
+function addCustomCol(t){
+  const el=document.getElementById('new-col-name');
+  const name=el?el.value.trim():'';
+  if(!name)return;
+  getColConfig(t).push({key:'custom_'+Date.now(),label:name,visible:true,custom:true});
+  saveColConfig(t);renderColPanel(t);
+  if(el)el.value='';
+}
+function removeCustomCol(t,i){
+  getColConfig(t).splice(i,1);
+  saveColConfig(t);renderColPanel(t);
+}
+function dragColStart(e,i){dragSrcIdx=i;e.dataTransfer.effectAllowed='move';}
+function dragColOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function dragColLeave(e){e.currentTarget.classList.remove('drag-over');}
+function dropCol(e,i,t){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(dragSrcIdx===null||dragSrcIdx===i){dragSrcIdx=null;return;}
+  const cols=getColConfig(t);
+  const moved=cols.splice(dragSrcIdx,1)[0];
+  cols.splice(i,0,moved);
+  dragSrcIdx=null;
+  saveColConfig(t);renderColPanel(t);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// THEME SYSTEM — 16 THEMES
+// ══════════════════════════════════════════════════════════════
+const THEMES=[
+  {id:'yellow-black',  name:'Yellow & Black',  sidebar:'#111111', accent:'#f5c400', bg:'#f0f4f8', btnColor:'#111'},
+  {id:'navy-blue',     name:'Navy & Blue',      sidebar:'#0f2942', accent:'#2d7dd2', bg:'#f0f4f8', btnColor:'#fff'},
+  {id:'forest-green',  name:'Forest Green',     sidebar:'#14532d', accent:'#16a34a', bg:'#f0fdf4', btnColor:'#fff'},
+  {id:'deep-purple',   name:'Deep Purple',      sidebar:'#2e1065', accent:'#7c3aed', bg:'#faf5ff', btnColor:'#fff'},
+  {id:'steel-red',     name:'Steel & Red',      sidebar:'#1c1c1e', accent:'#dc2626', bg:'#f9fafb', btnColor:'#fff'},
+  {id:'slate-orange',  name:'Slate & Orange',   sidebar:'#1e293b', accent:'#f97316', bg:'#f8fafc', btnColor:'#fff'},
+  {id:'midnight-teal', name:'Midnight Teal',    sidebar:'#134e4a', accent:'#14b8a6', bg:'#f0fdfa', btnColor:'#111'},
+  {id:'maroon-gold',   name:'Maroon & Gold',    sidebar:'#4c1d24', accent:'#d97706', bg:'#fffbeb', btnColor:'#111'},
+  {id:'carbon-black',  name:'Carbon Dark',      sidebar:'#09090b', accent:'#e4e4e7', bg:'#18181b', btnColor:'#111'},
+  {id:'royal-blue',    name:'Royal Blue',       sidebar:'#1e3a8a', accent:'#60a5fa', bg:'#eff6ff', btnColor:'#111'},
+  {id:'olive-khaki',   name:'Olive & Khaki',    sidebar:'#3d3d00', accent:'#a3a300', bg:'#fafaf0', btnColor:'#111'},
+  {id:'charcoal-teal', name:'Charcoal & Teal',  sidebar:'#1f2937', accent:'#2dd4bf', bg:'#f8fafc', btnColor:'#111'},
+  {id:'burgundy',      name:'Burgundy',         sidebar:'#500724', accent:'#e11d48', bg:'#fff1f2', btnColor:'#fff'},
+  {id:'sky-blue',      name:'Sky Blue',         sidebar:'#0c4a6e', accent:'#0ea5e9', bg:'#f0f9ff', btnColor:'#fff'},
+  {id:'copper-brown',  name:'Copper & Brown',   sidebar:'#431407', accent:'#ea580c', bg:'#fff7ed', btnColor:'#fff'},
+  {id:'indigo-pink',   name:'Indigo & Pink',    sidebar:'#312e81', accent:'#ec4899', bg:'#fdf2f8', btnColor:'#fff'},
+];
+let currentThemeId=localStorage.getItem('peb_theme')||'yellow-black';
+
+function applyTheme(id){
+  const t=THEMES.find(x=>x.id===id)||THEMES[0];
+  currentThemeId=t.id;
+  localStorage.setItem('peb_theme',t.id);
+  const r=document.documentElement.style;
+  r.setProperty('--yellow',t.accent);
+  r.setProperty('--accent',t.accent);
+  r.setProperty('--bg',t.bg);
+  r.setProperty('--sidebar-bg',t.sidebar);
+  document.body.style.background=t.bg;
+  // Sidebar bg
+  const sb=document.querySelector('.sidebar');
+  if(sb)sb.style.background=t.sidebar;
+  // Topbar
+  const tb=document.querySelector('.topbar');
+  if(tb){tb.style.background=t.sidebar;tb.style.borderBottomColor=t.accent;}
+  // Column panel head
+  const cp=document.querySelector('.col-panel-head');
+  if(cp){cp.style.background='var(--surface2)';cp.style.borderBottomColor=t.accent;cp.style.borderLeftColor=t.accent;}
+  // Settings card heads & table headers — update accent left border
+  document.querySelectorAll('.settings-card-head,.table-header').forEach(el=>{el.style.borderLeftColor=t.accent;});
+  // Modal heads — update top accent stripe
+  document.querySelectorAll('.modal-head').forEach(el=>{el.style.borderTopColor=t.accent;});
+  // Accent coloured things
+  document.querySelectorAll('.btn-primary').forEach(b=>{b.style.background=t.accent;b.style.color=t.btnColor;});
+  document.querySelectorAll('.nav-item.active').forEach(n=>{n.style.color=t.accent;n.style.borderLeftColor=t.accent;});
+  // Update nav item active style globally via CSS var
+  document.querySelectorAll('.user-chip.active').forEach(c=>{c.style.borderColor=t.accent;c.style.color=t.accent;});
+  // Theme name in settings
+  const tnEl=document.getElementById('theme-name-display');
+  if(tnEl)tnEl.textContent=t.name;
+  // Carbon dark: override surface colours for readability
+  if(id==='carbon-black'){
+    r.setProperty('--surface','#1c1c1c');
+    r.setProperty('--surface2','#2a2a2a');
+    r.setProperty('--surface3','#333');
+    r.setProperty('--border','#3a3a3a');
+    r.setProperty('--text','#f0f0f0');
+    r.setProperty('--text2','#aaa');
+  } else {
+    r.setProperty('--surface','#ffffff');
+    r.setProperty('--surface2','#f7f7f7');
+    r.setProperty('--surface3','#eeeeee');
+    r.setProperty('--border','#e5e5e5');
+    r.setProperty('--text','#1a1a1a');
+    r.setProperty('--text2','#4a4a4a');
+  }
+  renderThemeGrid();
+}
+
+function renderThemeGrid(){
+  const grid=document.getElementById('theme-grid');
+  if(!grid)return;
+  grid.innerHTML=THEMES.map(t=>`
+    <div class="theme-card ${t.id===currentThemeId?'active-theme':''}" data-theme="${t.id}" style="cursor:pointer;">
+      <div class="theme-preview" style="background:${t.bg};">
+        <div class="tp-sidebar" style="background:${t.sidebar};">
+          <div class="tp-dot"></div>
+          <div class="tp-dot-a" style="background:${t.accent};"></div>
+          <div class="tp-dot"></div>
+          <div class="tp-dot"></div>
+        </div>
+        <div class="tp-main" style="background:${t.bg};">
+          <div class="tp-topbar" style="background:${t.sidebar};border-bottom:2px solid ${t.accent};"></div>
+          <div class="tp-cards">
+            <div class="tp-card" style="border-top:3px solid ${t.accent};"></div>
+            <div class="tp-card" style="border-top:3px solid #16a34a;"></div>
+            <div class="tp-card" style="border-top:3px solid #dc2626;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="theme-lbl" style="color:${t.sidebar};">${t.name}${t.id===currentThemeId?' ✓':''}</div>
+    </div>`).join('');
+}
+
+
+(async function init(){
+  document.getElementById('q-date').value=today();
+  document.getElementById('t-start').value=today();
+  document.getElementById('tl-date').value=today();
+
+  const savedUrl=localStorage.getItem('peb_api_url');
+  const savedUser=localStorage.getItem('peb_user');
+  const savedDemo=localStorage.getItem('peb_demo');
+
+  if(savedDemo==='1'){
+    // Demo mode — go straight in
+    useDemoMode();
+    return;
+  }
+
+  if(savedUrl){
+    // Previously connected — auto-fill URL and load users
+    API_URL=savedUrl;
+    document.getElementById('api-url-input').value=savedUrl;
+    const loadBtn=document.querySelector('[onclick="loadUsersFromSheet()"]');
+    if(loadBtn){loadBtn.textContent='⏳ Loading team...';loadBtn.disabled=true;}
+    try{
+      const res=await fetch(API_URL+'?action=getUsers',{redirect:'follow'});
+      const data=await res.json();
+      if(data.users&&Array.isArray(data.users)&&data.users.length>0){
+        setUsersCache(data.users);
+      } else {
+        // Sheet empty — seed default GM
+        setUsersCache([{name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM',assignedTL:'',pin:'0000'}]);
+      }
+    }catch(e){
+      // Network error — fall back to localStorage cache
+      const cached=localStorage.getItem('peb_users');
+      if(cached){try{setUsersCache(JSON.parse(cached));}catch(e2){}}
+    }
+    populateSetupUserList();
+    document.getElementById('login-step').style.display='block';
+    if(savedUser)document.getElementById('setup-user').value=savedUser;
+    if(loadBtn){loadBtn.textContent='✅ Team loaded';loadBtn.disabled=false;}
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════
+// EDIT QUOTATION
+// ══════════════════════════════════════════════════════════════
+function openEditQuotation(id){
+  if(currentUser.role==='Design Engineer'){alert('Only GM and Team Leads can edit quotations.');return;}
+  const q=db.quotations.find(x=>x.id===id);if(!q)return;
+  closeModal('m-detail');
+  // Populate TL dropdown
+  const tls=getTLs();
+  document.getElementById('eq-tl').innerHTML='<option value="">— Select Team Lead —</option>'+tls.map(u=>`<option value="${u.name}"${u.name===q.tl?' selected':''}>${u.name}</option>`).join('');
+  // Populate engineer dropdown filtered by current TL
+  const engs=getUsers().filter(u=>u.role==='Design Engineer'&&u.assignedTL===q.tl);
+  document.getElementById('eq-eng').innerHTML='<option value="">— None / Assign later —</option>'+engs.map(e=>`<option value="${e.name}"${e.name===q.eng?' selected':''}>${e.name}</option>`).join('');
+  // Fill fields
+  document.getElementById('eq-qinternal-id').value = q.id;
+  document.getElementById('eq-id').value    = q.qid;
+  document.getElementById('eq-date').value  = q.dateRcvd||'';
+  document.getElementById('eq-name').value  = q.name||'';
+  document.getElementById('eq-client').value= q.client||'';
+  document.getElementById('eq-ptype').value = q.ptype||'Quote';
+  document.getElementById('eq-deadline').value = q.deadline||'';
+  document.getElementById('eq-notes').value = q.notes||'';
+  openModal('m-edit-quotation');
+}
+
+function filterEditEngByTL(){
+  const tl=document.getElementById('eq-tl').value;
+  const engs=tl?getUsers().filter(u=>u.role==='Design Engineer'&&u.assignedTL===tl):[];
+  document.getElementById('eq-eng').innerHTML='<option value="">— None / Assign later —</option>'+engs.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+}
+
+async function saveEditQuotation(){
+  const id=document.getElementById('eq-qinternal-id').value;
+  const q=db.quotations.find(x=>x.id===id);if(!q)return;
+  const newQid=document.getElementById('eq-id').value.trim();
+  const newName=document.getElementById('eq-name').value.trim();
+  if(!newQid){alert('Quotation ID is required');return;}
+  if(!newName){alert('Client Name is required');return;}
+  // Update fields
+  q.qid      = newQid;
+  q.dateRcvd = document.getElementById('eq-date').value||q.dateRcvd;
+  q.name     = newName;
+  q.client   = document.getElementById('eq-client').value.trim()||'';
+  q.ptype    = document.getElementById('eq-ptype').value;
+  q.deadline = document.getElementById('eq-deadline').value||'';
+  q.tl       = document.getElementById('eq-tl').value||q.tl;
+  const newEng = document.getElementById('eq-eng').value;
+  if(newEng && newEng !== q.eng){
+    q.eng = newEng;
+    if(q.status==='Assigned to TL') q.status='Assigned to Engineer';
+  }
+  q.notes = document.getElementById('eq-notes').value||'';
+  closeModal('m-edit-quotation');
+  refreshAll();
+  showToast('✅ Quotation updated','#0d7a4a');
+  if(!DEMO_MODE && API_URL){
+    try{ await apiCall('updateQ', q); }
+    catch(e){ console.warn('Sync failed, saved locally'); }
+  }
+}
+
+</script>
+</body>
+</html>
