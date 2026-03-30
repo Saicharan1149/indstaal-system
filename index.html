@@ -865,18 +865,49 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
 </div>
 
 <div class="modal-overlay" id="m-timelog">
-  <div class="modal" style="max-width:420px;"><div class="modal-head"><h2>⏱ Log Time</h2><button class="modal-close" onclick="closeModal('m-timelog')">✕</button></div>
-  <div class="modal-body">
-    <div class="form-grid">
-      <div class="form-group full"><label class="form-label">Quotation</label><select class="form-select" id="tl-quot"></select></div>
-      <div class="form-group full" id="tl-eng-row" style="display:none;"><label class="form-label">Logging for <span style="font-size:10px;color:var(--text3);">(GM/TL only)</span></label><select class="form-select" id="tl-eng"></select></div>
-      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="tl-date" type="date"/></div>
-      <div class="form-group"><label class="form-label">Hours</label><input class="form-input" id="tl-hrs" type="number" step="0.5" placeholder="3.5"/></div>
-      <div class="form-group full"><label class="form-label">Work Type</label><select class="form-select" id="tl-type"><option>Study</option><option>Estimation</option><option>STAAD Design</option><option>Checking</option><option>Revision</option></select></div>
-      <div class="form-group full"><label class="form-label">Description</label><textarea class="form-textarea" id="tl-desc" placeholder="What was done..."></textarea></div>
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head"><h2>⏱ Log Time</h2><button class="modal-close" onclick="closeModal('m-timelog')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">Log your work after each session or at end of day.</p>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Quotation</label>
+          <select class="form-select" id="tl-quot"></select>
+        </div>
+        <div class="form-group full" id="tl-eng-row" style="display:none;">
+          <label class="form-label">Logging for <span style="font-size:10px;color:var(--text3);">(GM / TL — select engineer)</span></label>
+          <select class="form-select" id="tl-eng"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" id="tl-date" type="date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hours Spent</label>
+          <input class="form-input" id="tl-hrs" type="number" step="0.5" min="0.5" max="24" placeholder="e.g. 2.5"/>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Work Type — click to select</label>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px;">
+            <label class="wtype-btn" data-type="Study">📖<span>Study</span></label>
+            <label class="wtype-btn" data-type="Estimation">📊<span>Estimation</span></label>
+            <label class="wtype-btn" data-type="STAAD Design">📐<span>STAAD</span></label>
+            <label class="wtype-btn" data-type="Checking">✔️<span>Checking</span></label>
+            <label class="wtype-btn" data-type="Other Work">📌<span>Other</span></label>
+          </div>
+          <input type="hidden" id="tl-type" value="">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Remarks <span style="color:var(--text3);font-size:10px;">(what was done)</span></label>
+          <textarea class="form-textarea" id="tl-desc" placeholder="e.g. Completed load calculations for main frame. Portal frame sizing done." style="min-height:65px;"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('m-timelog')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLog()">Save Log</button>
     </div>
   </div>
-  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-timelog')">Cancel</button><button class="btn btn-primary" onclick="saveLog()">Save</button></div></div>
 </div>
 
 <div class="modal-overlay" id="m-status">
@@ -1554,6 +1585,15 @@ document.addEventListener('click',function(e){
   // Daily log filter chips
   const dlChip=e.target.closest('[data-dlfilter]');
   if(dlChip){dlLogFilter=dlChip.getAttribute('data-dlfilter');renderDailyLog();return;}
+  // Work type buttons in Log Time modal
+  const wtypeBtn=e.target.closest('.wtype-btn');
+  if(wtypeBtn){
+    document.querySelectorAll('.wtype-btn').forEach(b=>b.classList.remove('selected'));
+    wtypeBtn.classList.add('selected');
+    const typeInput=document.getElementById('tl-type');
+    if(typeInput)typeInput.value=wtypeBtn.getAttribute('data-type');
+    return;
+  }
 });
 
 function showToast(msg,color){
@@ -2474,12 +2514,15 @@ async function saveLog(){
   const hrs=parseFloat(document.getElementById('tl-hrs').value);
   const wtype=document.getElementById('tl-type').value;
   // Engineer is always current user for Design Engineers; selectable for GM/TL
+  // Engineer: use currentUser for Design Engineers; use tl-eng picker for GM/TL
+  const engRow=document.getElementById('tl-eng-row');
   const engEl=document.getElementById('tl-eng');
-  const eng=engEl?engEl.value:currentUser.name;
+  const engRowVisible=engRow&&engRow.style.display!=='none';
+  const eng=engRowVisible&&engEl&&engEl.value ? engEl.value : currentUser.name;
   if(!qid){alert('Please select a Quotation');return;}
   if(!hrs||hrs<=0){alert('Please enter hours (e.g. 2.5)');return;}
-  if(!wtype){alert('Please select a Work Type');return;}
-  if(!eng){alert('Engineer name is required');return;}
+  if(!wtype){alert('Please select a Work Type — tap one of the 5 buttons');return;}
+  if(!eng){alert('Could not determine engineer name. Please log out and back in.');return;}
   const l={
     id:uid(), qid, tid:'', eng,
     date: document.getElementById('tl-date').value||today(),
