@@ -567,10 +567,20 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
   <div class="tabs" style="margin-bottom:14px;">
     <button class="tab-btn active" onclick="swTab(this,'tl-tab-today')">📅 Today's Work</button>
     <button class="tab-btn" onclick="swTab(this,'tl-tab-quotation')">📋 By Quotation</button>
+    <button class="tab-btn" onclick="swTab(this,'tl-tab-weekly')">📆 Weekly Timesheet</button>
     <button class="tab-btn" onclick="swTab(this,'tl-tab-all')">🕒 All Entries</button>
   </div>
   <div class="tab-content active" id="tl-tab-today"><div id="tl-today-content"></div></div>
   <div class="tab-content" id="tl-tab-quotation"><div id="tl-byquot-content"></div></div>
+  <div class="tab-content" id="tl-tab-weekly">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <button class="btn btn-ghost btn-sm" onclick="weekOffset--;renderTimelog()">← Prev Week</button>
+      <span id="tl-week-label" style="font-size:13px;font-weight:600;flex:1;text-align:center;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="weekOffset++;renderTimelog()">Next Week →</button>
+      <button class="btn btn-ghost btn-sm" onclick="weekOffset=0;renderTimelog()">This Week</button>
+    </div>
+    <div id="tl-weekly-content" style="overflow-x:auto;"></div>
+  </div>
   <div class="tab-content" id="tl-tab-all">
     <div class="table-wrap"><div class="table-header"><h3>All Entries</h3><button class="col-btn" onclick="openColPanel('timelog')">⚙️ Columns</button></div>
     <div style="overflow-x:auto;"><table><thead id="tl-thead"><tr><th>Date</th><th>Engineer</th><th>QUO ID</th><th>Work Type</th><th>Hours</th><th>Description</th><th></th></tr></thead><tbody id="tl-tbody"></tbody></table></div></div>
@@ -873,8 +883,25 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
   <div class="modal-body">
     <div class="form-section-title" style="margin-bottom:12px;">Project Information</div>
     <div class="form-grid" style="margin-bottom:14px;">
-      <div class="form-group"><label class="form-label">Quotation ID</label><input class="form-input" id="q-id" placeholder="QUO-2025-006"/></div>
+      <div class="form-group full">
+        <label class="form-label">Quotation ID <span style="color:var(--text3);font-size:10px;">Format: QRF-IND-{Sales Code}-{Year}-{Number}</span></label>
+        <div style="display:grid;grid-template-columns:60px 50px 60px 50px 1fr;gap:6px;align-items:center;margin-top:4px;">
+          <input class="form-input" value="QRF" readonly style="background:var(--surface3);color:var(--text3);text-align:center;font-family:var(--mono);font-size:12px;"/>
+          <input class="form-input" value="IND" readonly style="background:var(--surface3);color:var(--text3);text-align:center;font-family:var(--mono);font-size:12px;"/>
+          <input class="form-input" id="q-salescode" placeholder="NA" maxlength="4" style="text-transform:uppercase;font-family:var(--mono);font-size:13px;text-align:center;" oninput="buildQRFId()"/>
+          <input class="form-input" id="q-year" placeholder="26" maxlength="2" style="font-family:var(--mono);font-size:13px;text-align:center;" oninput="buildQRFId()"/>
+          <input class="form-input" id="q-number" placeholder="115" style="font-family:var(--mono);font-size:13px;text-align:center;" oninput="buildQRFId()"/>
+        </div>
+        <div style="margin-top:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 11px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">Preview:</span>
+          <span id="q-id-preview" style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--blue2);">QRF-IND-NA-26-</span>
+        </div>
+        <input type="hidden" id="q-id"/>
+      </div>
       <div class="form-group"><label class="form-label">Date Received</label><input class="form-input" id="q-date" type="date"/></div>
+      <div class="form-group"><label class="form-label">Revision No. <span style="color:var(--text3);font-size:10px;">0 = original, 1 = first revision...</span></label>
+        <input class="form-input" id="q-revnum" type="number" min="0" placeholder="e.g. 0"/>
+      </div>
       <div class="form-group full"><label class="form-label">Client Name</label><input class="form-input" id="q-name" placeholder="e.g. Mahindra Logistics"/></div>
       <div class="form-group"><label class="form-label">Consultant Name</label><input class="form-input" id="q-client" placeholder="e.g. ABC Consultants (optional)"/></div>
       <div class="form-group"><label class="form-label">Project Type</label><select class="form-select" id="q-ptype"><option value="Quote">Quote Stage</option><option value="Job">Job Stage</option></select></div>
@@ -983,7 +1010,7 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
     <!-- Sent to Sales checklist -->
     <div id="sales-fields" style="display:none;">
       <div class="form-group" style="margin-bottom:6px;">
-        <label class="form-label">Confirm items sent to Sales</label>
+        <label class="form-label">Confirm items sent to Sales <span style="color:var(--green);font-size:10px;">— ticking both will mark quotation Completed</span></label>
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:6px;display:flex;flex-direction:column;gap:10px;">
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
             <input type="checkbox" id="sales-est" style="width:16px;height:16px;">
@@ -1103,12 +1130,13 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
   <div class="modal-body">
     <div class="form-section-title" style="margin-bottom:12px;">Project Information</div>
     <div class="form-grid" style="margin-bottom:14px;">
-      <div class="form-group"><label class="form-label">Quotation ID</label><input class="form-input" id="eq-id" placeholder="QUO-2025-006"/></div>
+      <div class="form-group"><label class="form-label">Quotation ID <span style="color:var(--text3);font-size:10px;">e.g. QRF-IND-NA-26-115</span></label><input class="form-input" id="eq-id" placeholder="QRF-IND-NA-26-115" style="font-family:var(--mono);"/></div>
       <div class="form-group"><label class="form-label">Date Received</label><input class="form-input" id="eq-date" type="date"/></div>
       <div class="form-group full"><label class="form-label">Client Name</label><input class="form-input" id="eq-name" placeholder="e.g. Mahindra Logistics"/></div>
       <div class="form-group"><label class="form-label">Consultant Name</label><input class="form-input" id="eq-client" placeholder="e.g. ABC Consultants (optional)"/></div>
       <div class="form-group"><label class="form-label">Project Type</label><select class="form-select" id="eq-ptype"><option value="Quote">Quote Stage</option><option value="Job">Job Stage</option></select></div>
       <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" id="eq-deadline" type="date"/></div>
+      <div class="form-group"><label class="form-label">Revision No. <span style="color:var(--text3);font-size:10px;">0 = original</span></label><input class="form-input" id="eq-revnum" type="number" min="0" placeholder="e.g. 0"/></div>
     </div>
     <div class="form-section-title" style="margin-bottom:12px;">Assignment</div>
     <div class="form-grid">
@@ -1130,6 +1158,7 @@ let db={quotations:[],tasks:[],logs:[],activityLogs:[]};
 let currentUser={name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM'};
 let syncInterval=null;
 let lastSyncTime=null;
+let weekOffset=0; // 0=this week, -1=last week, etc.
 
 // ── DEFAULT TEAM (editable via Settings) ──
 const DEFAULT_USERS=[
@@ -1304,6 +1333,8 @@ async function saveChangePin(){
 }
 
 const STATUSES=['Received','Assigned to TL','In Progress','On Hold','Under Checking','Sent to Sales','Completed'];
+// Selectable statuses (Completed is reached automatically via Sent to Sales checklist)
+const SELECTABLE_STATUSES=['Received','Assigned to TL','In Progress','On Hold','Under Checking','Sent to Sales'];
 const STATUS_COLOR={'Received':'#2b6cb0','Assigned to TL':'#6b46c1','In Progress':'#c05621','On Hold':'#c53030','Under Checking':'#2b6cb0','Sent to Sales':'#0d7a4a','Completed':'#0d7a4a'};
 // Legacy status mapping — migrate old 11-status values to new 7
 function normaliseStatus(s){
@@ -1313,6 +1344,18 @@ function normaliseStatus(s){
 
 function uid(){return 'id-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);}
 function today(){return new Date().toISOString().split('T')[0];}
+
+// Build QRF ID preview as user types
+function buildQRFId(){
+  const sc=(document.getElementById('q-salescode')||{}).value||'';
+  const yr=(document.getElementById('q-year')||{}).value||'';
+  const nm=(document.getElementById('q-number')||{}).value||'';
+  const preview='QRF-IND-'+(sc.toUpperCase()||'??')+'-'+(yr||'??')+'-'+(nm||'???');
+  const el=document.getElementById('q-id-preview');
+  if(el)el.textContent=preview;
+  const hidden=document.getElementById('q-id');
+  if(hidden)hidden.value=preview;
+}
 function fmtDate(d){
   if(!d)return '—';
   // Handle ISO timestamp strings like "2026-03-29T18:30:00.000Z"
@@ -1322,7 +1365,7 @@ function fmtDate(d){
   return String(d);
 }
 function daysBetween(a,b){if(!a)return 0;const d1=new Date(a),d2=b?new Date(b):new Date();return Math.max(0,Math.floor((d2-d1)/86400000));}
-function isDelayed(q){if(!q.deadline||normaliseStatus(q.status)==='Completed')return false;const today=new Date();today.setHours(0,0,0,0);const dl=new Date(q.deadline);dl.setHours(0,0,0,0);return today>dl;}
+function isDelayed(q){const ns=normaliseStatus(q.status);if(!q.deadline||ns==='Completed'||ns==='Sent to Sales')return false;const today=new Date();today.setHours(0,0,0,0);const dl=new Date(q.deadline);dl.setHours(0,0,0,0);return today>dl;}
 function totalHrs(qid){return db.logs.filter(l=>l.qid===qid).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);}
 function badge(status){const ns=normaliseStatus(status||'');const cls='s-'+ns.replace(/\s/g,'');return `<span class="badge ${cls}">${ns}</span>`;}
 function tbadge(type){const cls='t-'+type.replace(/\s/g,'');const icons={Study:'📖',Estimation:'📊','STAAD Design':'📐',Checking:'✔️',Revision:'🔄'};return `<span class="badge ${cls}">${icons[type]||''} ${type}</span>`;}
@@ -2004,7 +2047,7 @@ function renderKanban(){
           const hrs=totalHrs(q.id);
           const del=isDelayed(q);
           return `<div class="kcard" onclick="showDetail('${q.id}')" style="border-left-color:${col};">
-            <div class="kc-id">${q.qid}${q.revCount>0?` <span style="background:${col}22;color:${col};font-size:9px;padding:1px 5px;border-radius:8px;">Rev×${q.revCount}</span>`:''}</div>
+            <div class="kc-id">${q.qid}${(q.revNumber||0)>0?` <span style="background:${col}22;color:${col};font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;">Rev ${q.revNumber}</span>`:''}</div>
             <div class="kc-name">${q.name}</div>
             <div class="kc-client" style="color:var(--text3);">${q.client||''}</div>
             <div class="kc-meta">
@@ -2160,7 +2203,7 @@ function renderTimelog(){
             <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
               <span style="font-size:11px;color:var(--text3);">${q.client||''}</span>
               <span style="background:${stCol}22;color:${stCol};border:1px solid ${stCol}44;padding:1px 8px;border-radius:8px;font-size:10px;font-family:var(--mono);font-weight:600;">${normSt}</span>
-              ${q.revCount>0?`<span style="background:#fb923c22;color:#c05621;border:1px solid #fb923c44;padding:1px 7px;border-radius:8px;font-size:10px;font-family:var(--mono);">Rev ×${q.revCount}</span>`:''}
+              ${(q.revNumber||0)>0?`<span style="background:#fb923c22;color:#c05621;border:1px solid #fb923c44;padding:1px 7px;border-radius:8px;font-size:10px;font-family:var(--mono);">Rev ${q.revNumber}</span>`:''}
             </div>
           </div>
           <div style="text-align:right;">
@@ -2175,6 +2218,108 @@ function renderTimelog(){
       </div>`;
     }).join('');
     byQuotEl.innerHTML=quotCards||'<div class="empty"><p>No quotations yet</p></div>';
+  }
+
+  // ══ TAB WEEKLY: WEEKLY TIMESHEET ════════════════════════
+  const weeklyEl=document.getElementById('tl-weekly-content');
+  const weekLabel=document.getElementById('tl-week-label');
+  if(weeklyEl){
+    // Calculate week start (Monday) and end (Sunday) based on weekOffset
+    const now=new Date();
+    const dayOfWeek=now.getDay()===0?6:now.getDay()-1; // Mon=0 .. Sun=6
+    const weekStart=new Date(now);
+    weekStart.setDate(now.getDate()-dayOfWeek+(weekOffset*7));
+    weekStart.setHours(0,0,0,0);
+    const weekEnd=new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate()+6);
+
+    // Build array of 7 date strings for the week
+    const weekDays=[];
+    for(let i=0;i<7;i++){
+      const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);
+      weekDays.push(d.toISOString().split('T')[0]);
+    }
+    const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+
+    // Update week label
+    if(weekLabel)weekLabel.textContent=fmt(weekDays[0])+' — '+fmt(weekDays[6])+(weekOffset===0?' (This Week)':weekOffset===-1?' (Last Week)':'');
+
+    // Determine engineers to show
+    let weekEngineers=users.filter(u=>u.role==='Design Engineer'||u.role==='Team Lead');
+    if(currentUser.role==='Team Lead') weekEngineers=weekEngineers.filter(e=>e.assignedTL===currentUser.name||e.name===currentUser.name);
+    else if(currentUser.role==='Design Engineer') weekEngineers=[currentUser];
+
+    // Build grid
+    const colW='80px';
+    let tableHtml=`<table style="border-collapse:collapse;width:100%;min-width:700px;">
+      <thead>
+        <tr>
+          <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:700;background:var(--navy);color:#fff;border-radius:8px 0 0 0;min-width:140px;">Engineer</th>
+          ${weekDays.map((d,i)=>{
+            const isToday=d===todayStr;
+            return `<th style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);background:var(--navy);color:${isToday?'var(--yellow)':'rgba(255,255,255,0.7)'};min-width:${colW};${i===6?'border-radius:0 8px 0 0;':''}">
+              <div style="font-weight:700;">${dayNames[i]}</div>
+              <div style="font-size:10px;opacity:0.7;">${fmt(d)}</div>
+              ${isToday?'<div style="width:6px;height:6px;border-radius:50%;background:var(--yellow);margin:2px auto 0;"></div>':''}
+            </th>`;
+          }).join('')}
+          <th style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);background:var(--navy);color:var(--blue2);min-width:70px;border-radius:0 8px 0 0;">Total</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    weekEngineers.forEach((eng,ei)=>{
+      const rowBg=ei%2===0?'var(--surface)':'var(--surface2)';
+      const weekTotal=weekDays.reduce((s,d)=>{
+        return s+logSrc.filter(l=>l.eng===eng.name&&fmtDate(l.date)===d).reduce((ss,l)=>ss+(parseFloat(l.hrs)||0),0);
+      },0);
+      tableHtml+=`<tr style="background:${rowBg};border-bottom:1px solid var(--border);">
+        <td style="padding:10px 14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:26px;height:26px;border-radius:50%;background:${eng.color||'#888'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">${eng.initials||'?'}</div>
+            <div style="font-size:12px;font-weight:600;">${eng.name}</div>
+          </div>
+        </td>
+        ${weekDays.map(d=>{
+          const dayLogs=logSrc.filter(l=>l.eng===eng.name&&fmtDate(l.date)===d);
+          const dayHrs=dayLogs.reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);
+          const isToday=d===todayStr;
+          const typeColors={Study:'#553c9a',Estimation:'#0d7a4a','STAAD Design':'#1a5eb8',Checking:'#b7791f','Other Work':'#c05621'};
+          return `<td style="padding:6px 8px;text-align:center;border-left:1px solid var(--border);background:${isToday?'rgba(245,196,0,0.06)':''};">
+            ${dayHrs===0
+              ?'<span style="color:var(--border2);font-size:11px;">—</span>'
+              :`<div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green);">${dayHrs.toFixed(1)}h</div>
+                <div style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;margin-top:2px;">
+                  ${[...new Set(dayLogs.map(l=>l.type))].map(t=>`<span style="width:6px;height:6px;border-radius:50%;background:${typeColors[t]||'#888'};display:inline-block;" title="${t}"></span>`).join('')}
+                </div>`}
+          </td>`;
+        }).join('')}
+        <td style="padding:6px 8px;text-align:center;border-left:2px solid var(--border);font-family:var(--mono);font-size:13px;font-weight:700;color:${weekTotal>0?'var(--blue2)':'var(--text3)'};">
+          ${weekTotal>0?weekTotal.toFixed(1)+'h':'—'}
+        </td>
+      </tr>`;
+    });
+
+    // Weekly totals row
+    const dayTotals=weekDays.map(d=>logSrc.filter(l=>fmtDate(l.date)===d).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0));
+    const grandTotal=dayTotals.reduce((s,v)=>s+v,0);
+    tableHtml+=`<tr style="background:var(--navy);font-weight:700;">
+      <td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.6);font-family:var(--mono);">TEAM TOTAL</td>
+      ${dayTotals.map((h,i)=>`<td style="padding:10px 8px;text-align:center;border-left:1px solid rgba(255,255,255,0.1);font-family:var(--mono);font-size:12px;color:${h>0?'var(--yellow)':'rgba(255,255,255,0.3)'};">${h>0?h.toFixed(1)+'h':'—'}</td>`).join('')}
+      <td style="padding:10px 8px;text-align:center;border-left:2px solid rgba(255,255,255,0.2);font-family:var(--mono);font-size:13px;color:var(--yellow);">${grandTotal.toFixed(1)}h</td>
+    </tr>`;
+    tableHtml+='</tbody></table>';
+
+    // Colour legend
+    const legend=`<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">
+      ${Object.entries({Study:'#553c9a',Estimation:'#0d7a4a','STAAD Design':'#1a5eb8',Checking:'#b7791f','Other Work':'#c05621'}).map(([t,c])=>
+        `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;"></span>${t}
+        </div>`).join('')}
+    </div>`;
+
+    weeklyEl.innerHTML=tableHtml+legend;
   }
 
   // ══ TAB 3: ALL ENTRIES ═══════════════════════════════════
@@ -2319,7 +2464,8 @@ function showDetail(id){
         <div class="detail-item"><div class="d-label">Status</div><div class="d-value">${badge(q.status)}</div></div>
         <div class="detail-item"><div class="d-label">Current Step</div><div class="d-value" style="font-family:var(--mono);font-weight:700;">${q.currentStep||'—'}</div></div>
         <div class="detail-item"><div class="d-label">Total Hours</div><div class="d-value" style="color:var(--blue2);font-weight:700;">${totalHrs(q.id).toFixed(1)}h</div></div>
-        <div class="detail-item"><div class="d-label">Revisions</div><div class="d-value" style="color:${q.revCount>0?'var(--orange)':''};">${q.revCount} (${(q.revParts||[]).join(', ')||'none'})</div></div>
+        <div class="detail-item"><div class="d-label">Revision Round</div><div class="d-value"><span style="font-family:var(--mono);font-weight:700;color:${(q.revNumber||0)>0?'var(--orange)':'var(--text)'};">Rev ${q.revNumber||0}</span></div></div>
+        <div class="detail-item"><div class="d-label">Internal Revisions</div><div class="d-value" style="color:${q.revCount>0?'var(--orange)':''};">${q.revCount} (${(q.revParts||[]).join(', ')||'none'})</div></div>
         <div class="detail-item"><div class="d-label">Days Active</div><div class="d-value">${daysBetween(q.dateRcvd)} days</div></div>
       </div>
       ${q.notes?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--text2);"><div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px;">NOTES / QRF REF</div>${q.notes}</div>`:''}
@@ -2337,13 +2483,16 @@ function showDetail(id){
   const canAssign=(currentUser.role==='Team Lead'||currentUser.role==='Full Access')&&q.status==='Assigned to TL';
   const canEdit =(currentUser.role==='Team Lead'||currentUser.role==='Full Access');
   const canDelete=(currentUser.role==='Full Access');
+  const isCompleted=normaliseStatus(q.status)==='Completed';
+  const canReopen=(currentUser.role==='Team Lead'||currentUser.role==='Full Access')&&isCompleted;
   document.getElementById('dt-footer').innerHTML=`
     <button class="btn btn-ghost" onclick="closeModal('m-detail')">Close</button>
-    <button class="btn btn-ghost" onclick="closeModal('m-detail');openModal('m-timelog')">⏱ Log Time</button>
+    <button class="btn btn-ghost" onclick="logTimeForQuotation('${q.id}')">⏱ Log Time</button>
     ${canAssign?`<button class="btn btn-success" onclick="openAssignEngineer('${q.id}')">👷 Assign Engineer</button>`:''}
     ${canEdit?`<button class="btn btn-ghost" onclick="openEditQuotation('${q.id}')">✏️ Edit</button>`:''}
+    ${canReopen?`<button class="btn btn-success" onclick="reopenQuotation('${q.id}')" style="background:#7c3aed;">🔄 Reopen (New Revision)</button>`:''}
     ${canDelete?`<button class="btn btn-danger" data-delete-qid="${q.id}" style="margin-left:auto;">🗑 Delete</button>`:''}
-    <button class="btn btn-primary" onclick="openStatusUpdate('${q.id}')">Update Status</button>`;
+    ${!isCompleted?`<button class="btn btn-primary" onclick="openStatusUpdate('${q.id}')">Update Status</button>`:''}`;
   openModal('m-detail');
 }
 function swTab(btn,id){
@@ -2386,13 +2535,10 @@ function openStatusUpdate(id){
   if(infoEl)infoEl.innerHTML='<span style="font-family:var(--mono);color:var(--blue2);font-weight:700;">'+q.qid+'</span> — '+q.name+'<span style="margin-left:10px;">'+badge(cur)+'</span>';
   // Build status grid (engineers cannot go to Assigned to TL)
   // Permission rules:
-  // Engineers: cannot set Assigned to TL
-  // TLs: cannot set Received (GM's job)
+  // Engineers: cannot set Assigned to TL. Completed reached automatically via Sent to Sales.
   const allSt=isEng
-    ?STATUSES.filter(s=>s!=='Assigned to TL')
-    :isTL
-      ?STATUSES.filter(s=>s!=='Received')
-      :STATUSES;
+    ?SELECTABLE_STATUSES.filter(s=>s!=='Assigned to TL')
+    :SELECTABLE_STATUSES;
   const grid=document.getElementById('us-status-grid');
   if(grid)grid.innerHTML=allSt.map(s=>{
     const active=s===cur;
@@ -2433,7 +2579,7 @@ async function applyStatus(){
   const id=document.getElementById('us-qid').value;
   const status=document.getElementById('us-status').value;
   const q=db.quotations.find(x=>x.id===id);if(!q)return;
-  // Sent to Sales — validate checklist
+  // Sent to Sales — validate checklist; auto-complete when both ticked
   if(status==='Sent to Sales'){
     const estOk=document.getElementById('sales-est').checked;
     const drawOk=document.getElementById('sales-drawing').checked;
@@ -2441,7 +2587,16 @@ async function applyStatus(){
       document.getElementById('sales-warn').style.display='block';
       return; // don't close — make them tick both
     }
+    // Both ticked — mark sent and auto-complete
     q.estSent=true; q.drawingSent=true; q.sentToSalesDate=today();
+    q.completedDate=today();
+    // Status becomes Completed automatically
+    q.status='Completed';
+    closeModal('m-status');
+    refreshAll();
+    showToast('✅ Sent to Sales — Quotation marked Completed','#0d7a4a');
+    if(!DEMO_MODE&&API_URL){try{await apiCall('updateQ',q);}catch(e){}}
+    return;
   }
   q.status=status;
   if(status==='On Hold'){q.hold=true;q.holdStart=today();q.holdReason=document.getElementById('us-reason').value;}
@@ -2455,11 +2610,9 @@ async function applyStatus(){
       q.revCount=(q.revCount||0)+1;
       q.revParts=[...new Set([...(q.revParts||[]),...parts])];
     }
-    // Uncheck after reading
     document.getElementById('rev-est').checked=false;
     document.getElementById('rev-staad').checked=false;
   }
-  if(status==='Completed')q.completedDate=today();
   closeModal('m-status');
   refreshAll();
   if(!DEMO_MODE && API_URL){
@@ -2518,10 +2671,23 @@ async function resumeQ(id){
 // SAVE HANDLERS
 // ══════════════════════════════════════════════════════════════
 async function saveQ(){
-  const qid=document.getElementById('q-id').value.trim();
+  // Build QRF ID from parts
+  const salesCode=(document.getElementById('q-salescode').value||'').trim().toUpperCase();
+  const yr=(document.getElementById('q-year').value||'').trim();
+  const num=(document.getElementById('q-number').value||'').trim();
+  if(!salesCode){alert('Please enter a Sales Engineer Code (e.g. NA, VS, RK)');return;}
+  if(!yr){alert('Please enter the year (e.g. 26)');return;}
+  if(!num){alert('Please enter the quotation number assigned by sales (e.g. 115)');return;}
+  const qid='QRF-IND-'+salesCode+'-'+yr+'-'+num;
   const name=document.getElementById('q-name').value.trim();
-  if(!qid){alert('Please enter a Quotation ID (e.g. QUO-2025-006)');return;}
-  if(!name){alert('Please enter a Project Name');return;}
+  if(!name){alert('Please enter a Client Name');return;}
+  // Check duplicate QID
+  if(db.quotations.find(q=>q.qid===qid)){
+    if(!confirm(qid+' already exists. Save anyway?'))return;
+  }
+  const revNumRaw=document.getElementById('q-revnum').value;
+  if(revNumRaw===''||revNumRaw===null){alert('Please enter a Revision Number (0 for original, 1 for first revision, etc.)');return;}
+  const revNumber=parseInt(revNumRaw)||0;
   const q={
     id:uid(), qid, name,
     client:   document.getElementById('q-client').value.trim()||'—',
@@ -2531,9 +2697,10 @@ async function saveQ(){
     tl:       document.getElementById('q-tl').value||'',
     eng:      document.getElementById('q-eng').value||'',
     status:'Received', hold:false, holdReason:'', holdStart:'', holdEnd:'',
+    revNumber: revNumber,
     revCount:0, revParts:[], querySent:false, queryDate:'',
-    currentStep:'S1', completedSteps:[],
-    estDone:false, staadDone:false, sentToSalesDate:'', completedDate:'',
+    estDone:false, staadDone:false, estSent:false, drawingSent:false,
+    sentToSalesDate:'', completedDate:'',
     notes: document.getElementById('q-notes').value||''
   };
   // Push to local db immediately
@@ -2541,7 +2708,7 @@ async function saveQ(){
   // Close modal
   closeModal('m-quotation');
   // Clear form fields
-  ['q-id','q-name','q-client','q-deadline','q-notes'].forEach(id=>{
+  ['q-salescode','q-year','q-number','q-name','q-client','q-deadline','q-notes'].forEach(id=>{
     const el=document.getElementById(id); if(el)el.value='';
   });
   // Navigate to Quotations page so user sees the new row
@@ -2622,6 +2789,10 @@ function openModal(id){
   const tlOpts='<option value="">— Select Team Lead —</option>'+tls.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
   const allOpts=users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
   // Quotation modal — TL first, then filter engineers
+  // Auto-fill current year for QRF format
+  const qYearEl=document.getElementById('q-year');
+  if(qYearEl&&!qYearEl.value)qYearEl.value=new Date().getFullYear().toString().slice(-2);
+  buildQRFId();
   const qtlEl=document.getElementById('q-tl');if(qtlEl)qtlEl.innerHTML=tlOpts;
   const qengEl=document.getElementById('q-eng');if(qengEl)qengEl.innerHTML='<option value="">— Select TL first —</option>';
   // Task modal
@@ -2894,7 +3065,7 @@ const DEFAULT_COLS={
     {key:'days',   label:'Days',          visible:true},
     {key:'hours',  label:'Hours',         visible:true},
     {key:'delay',  label:'Delay',         visible:true},
-    {key:'rev',    label:'Rev #',         visible:true},
+    {key:'rev',    label:'Rev No.',        visible:true},
     {key:'actions',label:'Actions',       visible:true},
   ],
   tasks:[
@@ -3163,6 +3334,7 @@ function openEditQuotation(id){
   document.getElementById('eq-ptype').value = q.ptype||'Quote';
   document.getElementById('eq-deadline').value = q.deadline||'';
   document.getElementById('eq-notes').value = q.notes||'';
+  const eqRev=document.getElementById('eq-revnum');if(eqRev)eqRev.value=(q.revNumber!==undefined?q.revNumber:'');
   openModal('m-edit-quotation');
 }
 
@@ -3193,6 +3365,8 @@ async function saveEditQuotation(){
     if(q.status==='Assigned to TL') q.status='Assigned to Engineer';
   }
   q.notes = document.getElementById('eq-notes').value||'';
+  const eqRevEl=document.getElementById('eq-revnum');
+  if(eqRevEl&&eqRevEl.value!=='')q.revNumber=parseInt(eqRevEl.value)||0;
   closeModal('m-edit-quotation');
   refreshAll();
   showToast('✅ Quotation updated','#0d7a4a');
@@ -3258,6 +3432,58 @@ async function saveEditLog(){
   if(!DEMO_MODE&&API_URL){
     try{ await apiCall('updateLog', l); }
     catch(e){ console.warn('Sync failed, saved locally'); }
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// LOG TIME FROM QUOTATION DETAIL (pre-selects the quotation)
+// ══════════════════════════════════════════════════════════════
+function logTimeForQuotation(qid){
+  closeModal('m-detail');
+  // Open timelog modal
+  openModal('m-timelog');
+  // Pre-select and lock the quotation dropdown
+  const sel=document.getElementById('tl-quot');
+  if(sel){
+    sel.value=qid;
+    // Highlight the selection
+    sel.style.borderColor='var(--yellow)';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// REOPEN COMPLETED QUOTATION (new revision round)
+// ══════════════════════════════════════════════════════════════
+async function reopenQuotation(id){
+  const q=db.quotations.find(x=>x.id===id);
+  if(!q)return;
+  if(currentUser.role==='Design Engineer'){
+    showToast('Only GM and Team Leads can reopen quotations','#c53030');return;
+  }
+  // Ask user to enter the revision number manually
+  const revInput=prompt(
+    'Reopen "'+q.qid+'" — '+q.name+'\n\n'+
+    'Enter the Revision Number for this new round:\n'+
+    '(Current: Rev '+(q.revNumber||0)+')',
+    (q.revNumber||0)+1
+  );
+  if(revInput===null)return; // cancelled
+  const newRev=parseInt(revInput);
+  if(isNaN(newRev)||newRev<0){
+    alert('Please enter a valid revision number (0 or higher).');return;
+  }
+  q.status='In Progress';
+  q.revNumber=newRev;
+  q.completedDate='';
+  q.hold=false;
+  q.holdEnd='';
+  closeModal('m-detail');
+  refreshAll();
+  showToast('🔄 '+q.qid+' reopened as Rev '+newRev,'#7c3aed');
+  if(!DEMO_MODE&&API_URL){
+    try{ await apiCall('updateQ',q); }
+    catch(e){ console.warn('Sync failed'); }
   }
 }
 
