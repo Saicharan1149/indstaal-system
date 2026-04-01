@@ -884,7 +884,7 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
     <div class="form-section-title" style="margin-bottom:12px;">Project Information</div>
     <div class="form-grid" style="margin-bottom:14px;">
       <div class="form-group full">
-        <label class="form-label">Quotation ID <span style="color:var(--text3);font-size:10px;">Format: QRF-IND-{Sales Code}-{Year}-{Number}</span></label>
+        <label class="form-label">Quotation ID <span style="color:var(--red);">*</span> <span style="color:var(--text3);font-size:10px;">QRF-IND-{Sales Code}-{Year}-{Number}</span></label>
         <div style="display:grid;grid-template-columns:60px 50px 60px 50px 1fr;gap:6px;align-items:center;margin-top:4px;">
           <input class="form-input" value="QRF" readonly style="background:var(--surface3);color:var(--text3);text-align:center;font-family:var(--mono);font-size:12px;"/>
           <input class="form-input" value="IND" readonly style="background:var(--surface3);color:var(--text3);text-align:center;font-family:var(--mono);font-size:12px;"/>
@@ -899,21 +899,22 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
         <input type="hidden" id="q-id"/>
       </div>
       <div class="form-group"><label class="form-label">Date Received</label><input class="form-input" id="q-date" type="date"/></div>
-      <div class="form-group"><label class="form-label">Revision No. <span style="color:var(--text3);font-size:10px;">0 = original, 1 = first revision...</span></label>
+      <div class="form-group"><label class="form-label">Revision No. <span style="color:var(--red);">*</span> <span style="color:var(--text3);font-size:10px;">0 = original, 1 = first revision...</span></label>
         <input class="form-input" id="q-revnum" type="number" min="0" placeholder="e.g. 0"/>
       </div>
-      <div class="form-group full"><label class="form-label">Client Name</label><input class="form-input" id="q-name" placeholder="e.g. Mahindra Logistics"/></div>
+      <div class="form-group full"><label class="form-label">Client Name <span style="color:var(--red);">*</span></label><input class="form-input" id="q-name" placeholder="e.g. Mahindra Logistics"/></div>
       <div class="form-group"><label class="form-label">Consultant Name</label><input class="form-input" id="q-client" placeholder="e.g. ABC Consultants (optional)"/></div>
       <div class="form-group"><label class="form-label">Project Type</label><select class="form-select" id="q-ptype"><option value="Quote">Quote Stage</option><option value="Job">Job Stage</option></select></div>
       <div class="form-group"><label class="form-label">Deadline</label><input class="form-input" id="q-deadline" type="date"/></div>
     </div>
     <div class="form-section-title" style="margin-bottom:12px;">Assignment</div>
     <div class="form-grid">
-      <div class="form-group"><label class="form-label">Team Lead</label><select class="form-select" id="q-tl" onchange="filterEngByTL()"></select></div>
-      <div class="form-group"><label class="form-label">Engineer <span style="color:var(--text3);font-size:10px;">(select TL first)</span></label><select class="form-select" id="q-eng"><option value="">— Select TL first —</option></select></div>
+      <div class="form-group"><label class="form-label">Team Lead <span style="color:var(--red);">*</span></label><select class="form-select" id="q-tl" onchange="filterEngByTL()"></select></div>
+      <div class="form-group"><label class="form-label">Engineer <span style="color:var(--text3);font-size:10px;">(optional — TL can assign later)</span></label><select class="form-select" id="q-eng"><option value="">— Select TL first —</option></select></div>
       <div class="form-group full"><label class="form-label">Notes / QRF Reference</label><textarea class="form-textarea" id="q-notes" placeholder="QRF ref, tender doc names, special requirements..."></textarea></div>
     </div>
   </div>
+  <div style="padding:0 20px 6px;font-size:11px;color:var(--text3);"><span style="color:var(--red);">*</span> Required field</div>
   <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-quotation')">Cancel</button><button class="btn btn-primary" onclick="saveQ()">Save</button></div></div>
 </div>
 
@@ -941,9 +942,11 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
     <div class="modal-body">
       <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">Log your work after each session or at end of day.</p>
       <div class="form-grid">
-        <div class="form-group full">
-          <label class="form-label">Quotation</label>
-          <select class="form-select" id="tl-quot"></select>
+        <div class="form-group full" id="tl-quot-row">
+          <label class="form-label">Quotation <span id="tl-quot-note" style="color:var(--text3);font-size:10px;">(not required for Other Work)</span></label>
+          <select class="form-select" id="tl-quot">
+            <option value="">— Not linked to a quotation —</option>
+          </select>
         </div>
         <div class="form-group full" id="tl-eng-row" style="display:none;">
           <label class="form-label">Logging for <span style="font-size:10px;color:var(--text3);">(GM / TL — select engineer)</span></label>
@@ -1156,6 +1159,7 @@ td{padding:10px 14px;font-size:13px;color:var(--text);}
 let API_URL='', DEMO_MODE=false;
 let db={quotations:[],tasks:[],logs:[],activityLogs:[]};
 let currentUser={name:'GM / Manager',role:'Full Access',color:'#0f2942',initials:'GM'};
+let loggedInUser=currentUser; // The actual logged-in person — never changes on chip switch
 let syncInterval=null;
 let lastSyncTime=null;
 let weekOffset=0; // 0=this week, -1=last week, etc.
@@ -1279,6 +1283,7 @@ function connectToSheet(){
   localStorage.setItem('peb_api_url',url);
   localStorage.setItem('peb_user',user);
   startApp(user,false);
+  loggedInUser=currentUser;
 }
 
 function useDemoMode(){
@@ -1293,12 +1298,14 @@ function useDemoMode(){
   localStorage.setItem('peb_demo','1');
   localStorage.setItem('peb_user','GM / Manager');
   seedDemoData();startApp('GM / Manager',true);
+  loggedInUser=currentUser;
 }
 
 function startApp(userName,demo){
   DEMO_MODE=demo;
   const users=getUsers();
   currentUser=users.find(u=>u.name===userName)||users[0];
+  loggedInUser=currentUser; // Lock in the real logged-in user
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('sb-mode').textContent=demo?'Demo Mode':'Live · Google Sheets';
@@ -1343,7 +1350,9 @@ function normaliseStatus(s){
 }
 
 function uid(){return 'id-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);}
-function today(){return new Date().toISOString().split('T')[0];}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+// Parse a date string or Date object as local date (avoids UTC midnight shifting the day)
+function normDate(d){if(!d)return '';if(typeof d==='string'){if(d.includes('T'))return d.split('T')[0];return d;}if(d instanceof Date){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}return '';}
 
 // Build QRF ID preview as user types
 function buildQRFId(){
@@ -1360,11 +1369,11 @@ function fmtDate(d){
   if(!d)return '—';
   // Handle ISO timestamp strings like "2026-03-29T18:30:00.000Z"
   if(typeof d==='string'&&d.includes('T'))return d.split('T')[0];
-  // Handle Date objects from Sheets
-  if(d instanceof Date)return d.toISOString().split('T')[0];
+  // Handle Date objects from Sheets — use local date, not UTC
+  if(d instanceof Date)return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   return String(d);
 }
-function daysBetween(a,b){if(!a)return 0;const d1=new Date(a),d2=b?new Date(b):new Date();return Math.max(0,Math.floor((d2-d1)/86400000));}
+function daysBetween(a,b){if(!a)return 0;const parseLocal=s=>{if(!s)return new Date();const p=String(s).split('T')[0].split('-');return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));};const d1=parseLocal(a),d2=b?parseLocal(b):new Date();return Math.max(0,Math.floor((d2-d1)/86400000));}
 function isDelayed(q){const ns=normaliseStatus(q.status);if(!q.deadline||ns==='Completed'||ns==='Sent to Sales')return false;const today=new Date();today.setHours(0,0,0,0);const dl=new Date(q.deadline);dl.setHours(0,0,0,0);return today>dl;}
 function totalHrs(qid){return db.logs.filter(l=>l.qid===qid).reduce((s,l)=>s+(parseFloat(l.hrs)||0),0);}
 function badge(status){const ns=normaliseStatus(status||'');const cls='s-'+ns.replace(/\s/g,'');return `<span class="badge ${cls}">${ns}</span>`;}
@@ -1393,7 +1402,8 @@ async function fetchAll(){
     const res=await fetch(API_URL+'?action=getAll',{redirect:'follow'});
     const json=await res.json();
     if(json.quotations!==undefined){
-      db.quotations=json.quotations||[];
+      // Normalise date fields from Google Sheets (may be ISO timestamps or Date objects)
+      db.quotations=(json.quotations||[]).map(q=>({...q,dateRcvd:normDate(q.dateRcvd),deadline:normDate(q.deadline)}));
       db.tasks=json.tasks||[];
       // Normalise log dates coming from Google Sheets (may be ISO timestamps)
       db.logs=(json.logs||[]).map(l=>({...l,date:fmtDate(l.date)}));
@@ -1686,8 +1696,19 @@ document.addEventListener('click',function(e){
   if(wtypeBtn){
     document.querySelectorAll('.wtype-btn:not(.el-wtype)').forEach(b=>b.classList.remove('selected'));
     wtypeBtn.classList.add('selected');
+    const wtype=wtypeBtn.getAttribute('data-type');
     const typeInput=document.getElementById('tl-type');
-    if(typeInput)typeInput.value=wtypeBtn.getAttribute('data-type');
+    if(typeInput)typeInput.value=wtype;
+    // Hide quotation field for Other Work
+    const quotRow=document.getElementById('tl-quot-row');
+    const quotNote=document.getElementById('tl-quot-note');
+    if(quotRow){
+      const isOther=wtype==='Other Work';
+      quotRow.style.opacity=isOther?'0.5':'1';
+      if(quotNote)quotNote.style.display=isOther?'inline':'none';
+      // Clear selection when Other Work selected
+      if(isOther){const s=document.getElementById('tl-quot');if(s)s.value='';}
+    }
     return;
   }
   // Work type buttons in Edit Log modal
@@ -1719,9 +1740,10 @@ function showToast(msg,color){
 function renderTopbarActions(){
   const el = document.getElementById('topbar-actions');
   if(!el) return;
-  const isGM   = currentUser.role === 'Full Access';
-  const isTL   = currentUser.role === 'Team Lead';
-  const isEng  = currentUser.role === 'Design Engineer';
+  // Button visibility based on WHO LOGGED IN, not the currently viewed TL
+  const isGM   = loggedInUser.role === 'Full Access';
+  const isTL   = loggedInUser.role === 'Team Lead';
+  const isEng  = loggedInUser.role === 'Design Engineer';
   let html = '';
   // All roles: Log Time
   html += `<button class="btn btn-ghost btn-sm" onclick="openModal('m-timelog')">⏱ Log Time</button>`;
@@ -1739,37 +1761,42 @@ function renderTopbarActions(){
 }
 
 function buildUserSwitcher(){
-  // Role-based chip visibility:
-  // Design Engineers → no chips (they only see their own data)
-  // Team Leads → only their own chip (cannot switch to other TLs)
-  // GM / Full Access → all TL chips
+  // Role based on WHO LOGGED IN (loggedInUser), not whose view is active
   let chips = [];
-  if(currentUser.role === 'Full Access'){
+  if(loggedInUser.role === 'Full Access'){
+    // GM sees all TL chips — clicking switches the dashboard view only
     chips = getUsers().filter(u => u.role==='Team Lead' || u.role==='Full Access');
-  } else if(currentUser.role === 'Team Lead'){
-    chips = getUsers().filter(u => u.name === currentUser.name);
+  } else if(loggedInUser.role === 'Team Lead'){
+    // TL sees only their own chip
+    chips = getUsers().filter(u => u.name === loggedInUser.name);
   }
   // Design Engineers get empty switcher
   document.getElementById('user-switcher').innerHTML = chips.map(u=>`
-    <div class="user-chip ${u.name===currentUser.name?'active':''}" title="${u.name} — ${u.role}" data-user="${u.name.replace(/"/g,'&quot;')}">
-      <span class="uc-dot" style="background:${u.color};"></span>${u.initials}
+    <div class="user-chip ${u.name===currentUser.name?'active':''}" title="${u.name} — ${u.role}${u.name===loggedInUser.name?' (You)':''}" data-user="${u.name.replace(/"/g,'&quot;')}">
+      <span class="uc-dot" style="background:${u.color};"></span>${u.initials}${u.name===loggedInUser.name?'<span style="font-size:8px;margin-left:2px;opacity:0.6;">●</span>':''}
     </div>`).join('');
   populateSetupUserList();
   renderTopbarActions();
 }
 
 function switchUser(name){
+  // Only GM can switch views — guard against engineers/TLs triggering this
+  if(loggedInUser.role!=='Full Access'&&name!==loggedInUser.name)return;
   const users=getUsers();
   currentUser=users.find(u=>u.name===name)||users[0];
-  localStorage.setItem('peb_user',currentUser.name);
+  // Don't persist the switched view — loggedInUser stays the real user
   buildUserSwitcher();updateSidebarUser();applyTheme(localStorage.getItem('peb_theme')||'yellow-black');refreshAll();
 }
 
 function updateSidebarUser(){
-  document.getElementById('sb-avatar').textContent=currentUser.initials;
-  document.getElementById('sb-avatar').style.background=currentUser.color;
-  document.getElementById('sb-name').textContent=currentUser.name;
-  document.getElementById('sb-role').textContent=currentUser.role;
+  document.getElementById('sb-avatar').textContent=loggedInUser.initials;
+  document.getElementById('sb-avatar').style.background=loggedInUser.color;
+  document.getElementById('sb-name').textContent=loggedInUser.name;
+  // Show "Viewing: [TL name]" when GM has switched to a TL's perspective
+  const isViewingOther=loggedInUser.name!==currentUser.name;
+  document.getElementById('sb-role').textContent=isViewingOther
+    ?loggedInUser.role+' · Viewing: '+currentUser.name
+    :loggedInUser.role;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1799,9 +1826,12 @@ function renderPage(page){
   updateBadges();
 }
 function updateBadges(){
-  document.getElementById('nb-active').textContent=db.quotations.filter(q=>normaliseStatus(q.status)!=='Completed').length;
-  document.getElementById('nb-hold').textContent=db.quotations.filter(q=>q.hold).length;
-  const delEl=document.getElementById('nb-delay');if(delEl)delEl.textContent=db.quotations.filter(q=>isDelayed(q)).length;
+  // All badge counts use myQ() so counts reflect logged-in user's scope:
+  // GM = all | TL = their team | Engineer = their own
+  const visible=myQ();
+  document.getElementById('nb-active').textContent=visible.filter(q=>normaliseStatus(q.status)!=='Completed').length;
+  document.getElementById('nb-hold').textContent=visible.filter(q=>q.hold).length;
+  const delEl=document.getElementById('nb-delay');if(delEl)delEl.textContent=visible.filter(q=>isDelayed(q)).length;
   // TL notification — pending engineer assignment
   const assignBadge=document.getElementById('nb-assign');
   if(assignBadge){
@@ -1837,7 +1867,8 @@ function renderDash(){
   // ── GREETING ─────────────────────────────────────────────
   const hour=new Date().getHours();
   const greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
-  const dateStr=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
   const greetEl=document.getElementById('dash-greeting');
   if(greetEl)greetEl.textContent=greet+', '+currentUser.name+' · '+dateStr;
   const titleEl=document.getElementById('dash-title');
@@ -1900,7 +1931,7 @@ function renderDash(){
               ?'<div style="color:var(--text3);font-size:12px;padding:8px 0;font-style:italic;">No active projects</div>'
               :engQ.slice(0,4).map(q=>`
                 <div onclick="showDetail('${q.id}')" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-                  <span style="font-family:var(--mono);font-size:10px;color:var(--blue2);font-weight:700;min-width:90px;">${q.qid}</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--blue2);font-weight:800;min-width:120px;letter-spacing:0.02em;">${q.qid}${(q.revNumber||0)>0?" Rev"+q.revNumber:""}</span>
                   <span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--navy);">${q.name}</span>
                   ${badge(q.status)}
                   ${isDelayed(q)?'<span style="color:var(--red);font-size:11px;">⚠️</span>':q.hold?'<span style="color:var(--orange);font-size:11px;">⏸</span>':''}
@@ -1962,7 +1993,7 @@ function renderDash(){
         const del=isDelayed(q);
         const hrs=totalHrs(q.id);
         return `<tr onclick="showDetail('${q.id}')" style="${del?'background:#fff5f5;':''}${q.hold?'background:#fffbf0;':''}">
-          <td class="td-mono" style="color:var(--blue2);font-weight:700;">${q.qid}</td>
+          <td><div style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--blue2);letter-spacing:0.02em;">${q.qid}</div>${q.revNumber>0?`<div style="font-size:10px;color:var(--orange);font-family:var(--mono);margin-top:2px;">Rev ${q.revNumber}</div>`:''}</td>
           <td style="font-weight:600;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.name}</td>
           <td style="font-size:12px;color:var(--text2);">${q.client||'—'}</td>
           <td style="font-size:12px;font-weight:600;">${q.eng||'—'}</td>
@@ -2017,7 +2048,7 @@ function renderQ(){
       if(c.key==='days')  return `<td class="td-mono">${daysBetween(q.dateRcvd)}d</td>`;
       if(c.key==='hours') return `<td class="td-mono" style="color:var(--blue2);font-weight:600;">${totalHrs(q.id).toFixed(1)}h</td>`;
       if(c.key==='delay') return `<td>${delayBadge(q)}</td>`;
-      if(c.key==='rev')   return `<td class="td-mono" style="color:${q.revCount>0?'var(--orange)':'var(--text3)'};">${q.revCount}</td>`;
+      if(c.key==='rev')   return `<td class="td-mono" style="color:${(q.revNumber||0)>0?'var(--orange)':'var(--text3)'};">${q.revNumber||0}</td>`;
       if(c.key==='actions')return `<td onclick="event.stopPropagation()"><button class="btn btn-ghost btn-xs" data-statusbtn="${q.id}">Status ▾</button></td>`;
       return `<td>${q[c.key]||'—'}</td>`;
     }).join('')}
@@ -2237,7 +2268,7 @@ function renderTimelog(){
     const weekDays=[];
     for(let i=0;i<7;i++){
       const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);
-      weekDays.push(d.toISOString().split('T')[0]);
+      weekDays.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
     }
     const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
@@ -2681,6 +2712,8 @@ async function saveQ(){
   const qid='QRF-IND-'+salesCode+'-'+yr+'-'+num;
   const name=document.getElementById('q-name').value.trim();
   if(!name){alert('Please enter a Client Name');return;}
+  const tlVal=document.getElementById('q-tl').value;
+  if(!tlVal){alert('Please select a Team Lead — this is required');return;}
   // Check duplicate QID
   if(db.quotations.find(q=>q.qid===qid)){
     if(!confirm(qid+' already exists. Save anyway?'))return;
@@ -2754,7 +2787,7 @@ async function saveLog(){
   const engEl=document.getElementById('tl-eng');
   const engRowVisible=engRow&&engRow.style.display!=='none';
   const eng=engRowVisible&&engEl&&engEl.value ? engEl.value : currentUser.name;
-  if(!qid){alert('Please select a Quotation');return;}
+  if(!qid&&wtype!=='Other Work'){alert('Please select a Quotation (or choose Other Work if not linked to a project)');return;}
   if(!hrs||hrs<=0){alert('Please enter hours (e.g. 2.5)');return;}
   if(!wtype){alert('Please select a Work Type — tap one of the 5 buttons');return;}
   if(!eng){alert('Could not determine engineer name. Please log out and back in.');return;}
